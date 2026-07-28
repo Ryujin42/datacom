@@ -18,6 +18,13 @@ import org.junit.jupiter.api.Test;
  * <p>allowEmptyShould(true) : les couches domain/application n'existent pas encore a ce stade (L0)
  * ; les regles doivent passer a vide plutot qu'echouer tant qu'il n'y a rien a verifier, et
  * commencer a s'appliquer des qu'une premiere classe apparait dans le paquet concerne.
+ *
+ * <p>Decision d'architecture (L1) : jakarta.persistence est toleree dans le domaine. Les
+ * annotations JPA (@Entity, @Column...) sont des metadonnees declaratives, pas un couplage
+ * comportemental a un framework - c'est le compromis standard d'une architecture en couches Spring
+ * (par opposition a un modele hexagonal pur avec mapping domaine/persistence separe,
+ * disproportionne pour ce projet). Ce que TEC-01 interdit reste interdit : injection Spring,
+ * logique Hibernate specifique, API servlet.
  */
 class ArchitectureTest {
 
@@ -35,10 +42,7 @@ class ArchitectureTest {
                         .should()
                         .dependOnClassesThat()
                         .resideInAnyPackage(
-                                "org.springframework..",
-                                "jakarta.persistence..",
-                                "jakarta.servlet..",
-                                "org.hibernate..")
+                                "org.springframework..", "jakarta.servlet..", "org.hibernate..")
                         .allowEmptyShould(true);
 
         rule.check(CLASSES);
