@@ -1,0 +1,9 @@
+# LF partout, y compris sur Windows : les hooks husky et scripts shell (shebang
+# #!/usr/bin/env sh) cassent silencieusement en CRLF sur Linux/macOS (runners CI,
+# contributeurs non-Windows).
+* text=auto eol=lf
+
+*.jpg -text
+*.png -text
+*.webp -text
+*.ico -text

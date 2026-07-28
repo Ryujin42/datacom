@@ -1,0 +1,16 @@
+#!/usr/bin/env sh
+# Fast gate: formatting, static analysis, unit tests only (no Testcontainers/Docker
+# needed here). Full integration tests run in .husky/pre-push and in CI.
+
+if ! git diff --cached --name-only | grep -qE '\.(java|xml|ya?ml|sql)$'; then
+    exit 0
+fi
+
+echo "pre-commit: formatage (Spotless)..."
+./scripts/run-maven.sh spotless:apply
+
+# Re-stage any file Spotless reformatted so the commit is clean.
+git diff --name-only --diff-filter=M | grep -E '\.java$' | xargs -r git add
+
+echo "pre-commit: analyse statique (Checkstyle) + tests unitaires..."
+./scripts/run-maven.sh checkstyle:check test
