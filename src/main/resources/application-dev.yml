@@ -7,6 +7,9 @@ spring:
       maximum-pool-size: ${DB_POOL_MAX:5}
   jpa:
     show-sql: true
+  flyway:
+    # Comptes de demonstration (V3, db/migration/dev) : jamais en production (TEC-07).
+    locations: classpath:db/migration,classpath:db/migration/dev
 
 logging:
   level:
