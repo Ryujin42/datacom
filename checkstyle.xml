@@ -30,6 +30,18 @@
         <module name="SimplifyBooleanReturn"/>
         <module name="EmptyCatchBlock"/>
 
+        <!-- Maintenabilite (O4, QUA-03) : empeche de reproduire ProductServlet.doPost
+             (240 lignes) ou le bloc if/else de 500 lignes en scriptlets (AUDIT.md S3.5). -->
+        <module name="MethodLength">
+            <property name="max" value="60"/>
+        </module>
+        <module name="CyclomaticComplexity">
+            <property name="max" value="10"/>
+        </module>
+        <module name="ParameterNumber">
+            <property name="max" value="6"/>
+        </module>
+
         <!-- Corrige la journalisation legacy (AUDIT.md §3.5, §5.5) : SLF4J uniquement. -->
         <module name="RegexpSinglelineJava">
             <property name="format" value="System\.(out|err)\.print"/>
