@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Erreur — DataCom</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<main class="error-page">
+    <p class="status-code">500</p>
+    <h1>Une erreur est survenue</h1>
+    <p>Le problème a été journalisé côté serveur. Si vous contactez le support, communiquez la référence suivante :</p>
+    <p><span class="correlation-id" th:text="${correlationId}">correlation-id</span></p>
+    <p><a th:href="@{/}">Retour à l'accueil</a></p>
+</main>
+</body>
+</html>

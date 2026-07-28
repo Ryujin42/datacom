@@ -1,0 +1,23 @@
+target/
+*.class
+
+### IDE ###
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.classpath
+.project
+.settings/
+
+### OS ###
+.DS_Store
+Thumbs.db
+
+### Env ###
+.env
+
+### Node (outillage des hooks Git uniquement) ###
+node_modules/
+

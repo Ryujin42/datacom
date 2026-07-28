@@ -1,0 +1,36 @@
+services:
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: datacom-refonte-db
+    environment:
+      POSTGRES_DB: ${DB_NAME:-datacom}
+      POSTGRES_USER: ${DB_USER:-datacom_app}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-datacom_app}
+    # Pas de port publie sur l'hote : la base n'est joignable que depuis le reseau Docker interne (SEC-11).
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-datacom_app} -d ${DB_NAME:-datacom}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - datacom-db-data:/var/lib/postgresql/data
+
+  app:
+    build: .
+    container_name: datacom-refonte-app
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-datacom}
+      DB_USER: ${DB_USER:-datacom_app}
+      DB_PASSWORD: ${DB_PASSWORD:-datacom_app}
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  datacom-db-data:

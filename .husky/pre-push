@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+# Full gate before code leaves the machine: compile, unit + integration tests
+# (Testcontainers), static analysis, formatting, coverage report.
+echo "pre-push: mvn verify (unitaires + integration Testcontainers)..."
+./scripts/run-maven.sh verify
