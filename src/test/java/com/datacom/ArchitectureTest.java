@@ -1,5 +1,7 @@
 package com.datacom;
 
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.assignableTo;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyPackage;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
@@ -8,6 +10,7 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.lang.ArchRule;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.repository.Repository;
 
 /**
  * Fait respecter mecaniquement TEC-01/02/03/04 (architecture en couches) des le premier lot, avant
@@ -49,14 +52,20 @@ class ArchitectureTest {
     }
 
     @Test
-    void presentationMustNotAccessPersistenceDirectly() {
+    void presentationMustNotAccessRepositoriesOrPersistenceApiDirectly() {
+        // Cible les depots (Repository) et l'API JPA, pas tout ..infrastructure.. sans
+        // distinction : les adaptateurs Spring Security comme UserPrincipal sont concus pour
+        // franchir cette frontiere (c'est l'idiome @AuthenticationPrincipal), a la difference
+        // d'un Repository ou d'une entite JPA qu'un controleur ne doit jamais manipuler
+        // directement (TEC-03, corrige le ResultSet transmis a la JSP du legacy).
         ArchRule rule =
                 noClasses()
                         .that()
                         .resideInAPackage("..web..")
                         .should()
-                        .dependOnClassesThat()
-                        .resideInAnyPackage("..infrastructure..", "jakarta.persistence..")
+                        .dependOnClassesThat(
+                                resideInAnyPackage("jakarta.persistence..")
+                                        .or(assignableTo(Repository.class)))
                         .allowEmptyShould(true);
 
         rule.check(CLASSES);

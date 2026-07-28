@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Connexion — DataCom</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<main class="auth-page">
+    <h1>DataCom</h1>
+
+    <p role="alert" class="form-error" th:if="${errorMessage}" th:text="${errorMessage}">Erreur</p>
+    <p role="status" th:if="${logoutMessage}" th:text="${logoutMessage}">Déconnecté</p>
+
+    <form method="post" th:action="@{/login}">
+        <div class="form-field">
+            <label for="username">Identifiant</label>
+            <input type="text" id="username" name="username" autocomplete="username" required="required"/>
+        </div>
+        <div class="form-field">
+            <label for="password">Mot de passe</label>
+            <input type="password" id="password" name="password" autocomplete="current-password" required="required"/>
+        </div>
+        <button type="submit">Se connecter</button>
+    </form>
+</main>
+</body>
+</html>

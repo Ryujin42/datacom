@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Accueil — DataCom</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<header class="app-header">
+    <img th:src="@{/img/datacom.webp}" alt="DataCom"/>
+    <span th:text="${firstname} + ' ' + ${lastname} + ' — ' + ${role}">Utilisateur</span>
+    <form method="post" th:action="@{/logout}" style="margin-left:auto">
+        <button type="submit">Se déconnecter</button>
+    </form>
+</header>
+<main>
+    <h1>Bienvenue, <span th:text="${firstname}">Prénom</span></h1>
+    <p><a th:href="@{/password/change}">Changer mon mot de passe</a></p>
+</main>
+</body>
+</html>
