@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:datacom}
+    username: ${DB_USER:datacom_app}
+    password: ${DB_PASSWORD:datacom_app}
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX:5}
+  jpa:
+    show-sql: true
+
+logging:
+  level:
+    root: INFO
+    com.datacom: DEBUG
+    org.hibernate.SQL: DEBUG
