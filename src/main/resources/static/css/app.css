@@ -1,0 +1,80 @@
+/* Feuille de style unique, externalisee et mutualisee (ECO-09). */
+
+:root {
+  --color-bg: #ffffff;
+  --color-text: #1a1a1a;
+  --color-primary: #1f3864;
+  --color-border: #d0d0d0;
+  --color-danger: #8a1f11;
+  --focus-outline: 3px solid #1a5fb4;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  color: var(--color-text);
+  background: var(--color-bg);
+  line-height: 1.5;
+}
+
+a {
+  color: var(--color-primary);
+}
+
+a:focus,
+button:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  outline: var(--focus-outline);
+  outline-offset: 2px;
+}
+
+header.app-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+header.app-header img {
+  height: 32px;
+  width: auto;
+}
+
+main {
+  max-width: 720px;
+  margin: 3rem auto;
+  padding: 0 1.5rem;
+}
+
+.error-page h1 {
+  font-size: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.error-page .status-code {
+  display: inline-block;
+  font-weight: bold;
+  color: var(--color-danger);
+  margin-bottom: 1rem;
+}
+
+.error-page .correlation-id {
+  font-family: "Consolas", monospace;
+  background: #f4f4f4;
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+}
+
+footer.app-footer {
+  text-align: center;
+  font-size: 0.85rem;
+  color: #555;
+  padding: 1.5rem;
+}

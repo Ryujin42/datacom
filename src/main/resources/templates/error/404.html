@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Page introuvable — DataCom</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<main class="error-page">
+    <p class="status-code">404</p>
+    <h1>Page introuvable</h1>
+    <p>La ressource demandée n'existe pas, ou vous n'y avez pas accès.</p>
+    <p><a th:href="@{/}">Retour à l'accueil</a></p>
+</main>
+</body>
+</html>
