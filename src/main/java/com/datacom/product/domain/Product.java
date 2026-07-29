@@ -82,6 +82,15 @@ public class Product {
     @Column(name = "validated_by")
     private Long validatedBy;
 
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt = Instant.now();
+
+    // RG-15 : horodatage UTC. Maintenu par l'entite a chaque changement plutot que par une
+    // annotation Hibernate (@UpdateTimestamp) ou un declencheur SQL : le domaine ne doit dependre
+    // ni du framework de persistance (TEC-01) ni d'un comportement invisible depuis le code.
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt = Instant.now();
+
     @Column(name = "submitted_at")
     private Instant submittedAt;
 
@@ -91,6 +100,12 @@ public class Product {
     @Version
     @Column(nullable = false)
     private long version;
+
+    // Colonne generee par la base (V6) : reference, nom et fabricant assembles, sans accents ni
+    // majuscules. Elle n'existe que pour porter l'index de recherche et n'est jamais lue ni ecrite
+    // par le code — d'ou l'absence d'accesseur. Les requetes de US-14 s'appuient dessus.
+    @Column(name = "search_text", insertable = false, updatable = false)
+    private String searchText;
 
     protected Product() {
         // JPA
@@ -113,6 +128,7 @@ public class Product {
         this.reference = reference;
         this.name = name;
         this.description = description;
+        touch();
     }
 
     /** RG-08, etape 2. RG-13 : la valeur de {@code country} est revalidee cote serveur. */
@@ -129,6 +145,7 @@ public class Product {
         this.subcategory = subcategory;
         this.manufacturer = manufacturer;
         this.country = country;
+        touch();
     }
 
     /** RG-08, etape 3. */
@@ -140,6 +157,7 @@ public class Product {
         this.lotNumber = lotNumber;
         this.certification = certification;
         this.authorComment = authorComment;
+        touch();
     }
 
     /** RG-09 : navigation libre entre les quatre etapes d'une fiche encore modifiable. */
@@ -149,6 +167,7 @@ public class Product {
             throw new IllegalArgumentException("Etape invalide : " + step);
         }
         this.currentStep = (short) step;
+        touch();
     }
 
     /** RG-08 : champs obligatoires des etapes 1 a 3. */
@@ -170,6 +189,13 @@ public class Product {
         if (value != null && value.length() > max) {
             throw new FieldTooLongException(field, label, max);
         }
+    }
+
+    /**
+     * Appele par tout ce qui modifie la fiche, pour que RG-15 tienne sans dependre du framework.
+     */
+    private void touch() {
+        this.updatedAt = Instant.now();
     }
 
     private void ensureEditable() {
@@ -204,6 +230,7 @@ public class Product {
         }
         status = ProductStatus.IN_REVIEW;
         submittedAt = now;
+        touch();
     }
 
     /** RG-04/RG-02 : IN_REVIEW -> VALIDATED, par un utilisateur autre que l'auteur. */
@@ -218,6 +245,7 @@ public class Product {
         status = ProductStatus.VALIDATED;
         validatedBy = actingUserId;
         validatedAt = now;
+        touch();
     }
 
     /** RG-04/RG-02 : IN_REVIEW -> DRAFT, par un utilisateur autre que l'auteur. */
@@ -230,6 +258,7 @@ public class Product {
                     "RG-02 : l'auteur d'une fiche ne peut pas la renvoyer en brouillon lui-meme.");
         }
         status = ProductStatus.DRAFT;
+        touch();
     }
 
     public Long getId() {
@@ -290,6 +319,14 @@ public class Product {
 
     public Long getValidatedBy() {
         return validatedBy;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
     }
 
     public Instant getSubmittedAt() {
