@@ -1,7 +1,7 @@
 package com.datacom.product.domain;
 
 /** RG-14/US-07 CA-4 : un depassement est refuse avant enregistrement, jamais tronque en silence. */
-public class FieldTooLongException extends RuntimeException {
+public class FieldTooLongException extends ProductInputException {
 
     private final String field;
 

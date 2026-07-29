@@ -15,6 +15,12 @@
 </header>
 <main>
     <h1>Bienvenue, <span th:text="${firstname}">Prénom</span></h1>
+
+    <!-- US-05 CA-1 : la creation est un POST, jamais une simple navigation (corrige B6). -->
+    <form method="post" th:action="@{/fiches}" th:if="${role.name() == 'OPERATOR'}">
+        <button type="submit">Créer une fiche produit</button>
+    </form>
+
     <p><a th:href="@{/password/change}">Changer mon mot de passe</a></p>
 </main>
 </body>

@@ -178,6 +178,18 @@ public class Product {
         }
     }
 
+    /**
+     * RG-01 : une fiche en brouillon n'est modifiable que par son auteur. Distinct de {@link
+     * #ensureEditable()}, qui ne regarde que l'etat : les deux refus ont des causes differentes et
+     * sont testes separement.
+     */
+    public void ensureAuthoredBy(Long actingUserId) {
+        if (!createdBy.equals(actingUserId)) {
+            throw new UnauthorizedProductActionException(
+                    "Seul l'auteur de la fiche peut la consulter et la modifier en brouillon.");
+        }
+    }
+
     /** RG-04 : DRAFT -> IN_REVIEW, par l'auteur, fiche complete (RG-08) uniquement. */
     public void submit(Long actingUserId, Instant now) {
         if (status != ProductStatus.DRAFT) {

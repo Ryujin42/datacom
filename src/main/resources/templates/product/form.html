@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="'Fiche produit — étape ' + ${step} + ' — DataCom'">Fiche produit — DataCom</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<header class="app-header">
+    <img th:src="@{/img/datacom.webp}" alt="DataCom"/>
+    <a th:href="@{/}">Accueil</a>
+</header>
+
+<main>
+    <h1>Fiche produit</h1>
+
+    <!-- ERG-05 : message d'erreur explicite, en francais, annonce aux lecteurs d'ecran. -->
+    <p role="alert" class="form-error" th:if="${errorMessage}" th:text="${errorMessage}">Erreur</p>
+
+    <!-- US-06 CA-2 : etape courante et completude. ERG-04 : l'etat n'est jamais porte par la
+         seule couleur, un libelle textuel l'accompagne toujours. -->
+    <nav aria-label="Étapes de saisie">
+        <ol class="steps">
+            <li th:each="s : ${#numbers.sequence(1, 4)}"
+                th:classappend="${s == step} ? 'current' : ''">
+                <span th:text="'Étape ' + ${s}">Étape</span>
+                <span th:if="${s == step}" class="step-state"> — en cours</span>
+            </li>
+        </ol>
+        <p th:text="${fiche.complete}
+              ? 'Toutes les données obligatoires sont renseignées.'
+              : 'Il reste des données obligatoires à renseigner.'">Complétude</p>
+    </nav>
+
+    <form method="post" th:action="@{'/fiches/' + ${fiche.id} + '/etape/' + ${step}}">
+        <!-- RG-07 : version telle qu'a l'ouverture, pour detecter une modification concurrente. -->
+        <input type="hidden" name="version" th:value="${fiche.version}"/>
+
+        <div th:if="${step == 1}">
+            <h2>Étape 1 — Identification</h2>
+            <div class="form-field">
+                <label for="reference">Référence <abbr title="obligatoire">*</abbr></label>
+                <input type="text" id="reference" name="reference" th:value="${fiche.reference}"
+                       maxlength="32" aria-describedby="reference-aide"/>
+                <p id="reference-aide" class="field-help">3 à 32 caractères : majuscules, chiffres et tirets.</p>
+            </div>
+            <div class="form-field">
+                <label for="name">Nom <abbr title="obligatoire">*</abbr></label>
+                <input type="text" id="name" name="name" th:value="${fiche.name}" maxlength="150"/>
+            </div>
+            <div class="form-field">
+                <label for="description">Description</label>
+                <textarea id="description" name="description" rows="4" maxlength="2000"
+                          th:text="${fiche.description}"></textarea>
+            </div>
+        </div>
+
+        <div th:if="${step == 2}">
+            <h2>Étape 2 — Classification</h2>
+            <div class="form-field">
+                <label for="category">Catégorie <abbr title="obligatoire">*</abbr></label>
+                <input type="text" id="category" name="category" th:value="${fiche.category}" maxlength="80"/>
+            </div>
+            <div class="form-field">
+                <label for="subcategory">Sous-catégorie</label>
+                <input type="text" id="subcategory" name="subcategory" th:value="${fiche.subcategory}" maxlength="80"/>
+            </div>
+            <div class="form-field">
+                <label for="manufacturer">Fabricant <abbr title="obligatoire">*</abbr></label>
+                <input type="text" id="manufacturer" name="manufacturer" th:value="${fiche.manufacturer}" maxlength="150"/>
+            </div>
+            <div class="form-field">
+                <label for="country">Pays d'origine <abbr title="obligatoire">*</abbr></label>
+                <!-- RG-13 : liste fermee, presentee en clair et revalidee cote serveur. -->
+                <select id="country" name="country">
+                    <option value="">— Choisir —</option>
+                    <option th:each="c : ${countries}" th:value="${c.code}" th:text="${c.label}"
+                            th:selected="${c.code == fiche.country}">Pays</option>
+                </select>
+            </div>
+        </div>
+
+        <div th:if="${step == 3}">
+            <h2>Étape 3 — Traçabilité et conformité</h2>
+            <div class="form-field">
+                <label for="lotNumber">Numéro de lot <abbr title="obligatoire">*</abbr></label>
+                <input type="text" id="lotNumber" name="lotNumber" th:value="${fiche.lotNumber}" maxlength="50"/>
+            </div>
+            <div class="form-field">
+                <label for="certification">Certification <abbr title="obligatoire">*</abbr></label>
+                <input type="text" id="certification" name="certification" th:value="${fiche.certification}" maxlength="100"/>
+            </div>
+            <div class="form-field">
+                <label for="authorComment">Commentaire</label>
+                <textarea id="authorComment" name="authorComment" rows="3" maxlength="1000"
+                          th:text="${fiche.authorComment}"></textarea>
+            </div>
+        </div>
+
+        <div th:if="${step == 4}">
+            <h2>Étape 4 — Récapitulatif</h2>
+            <!-- ERG-07 : un tableau, parce qu'il s'agit bien de donnees tabulaires. -->
+            <table>
+                <caption>Données saisies</caption>
+                <tbody>
+                <tr><th scope="row">Référence</th><td th:text="${fiche.reference}"></td></tr>
+                <tr><th scope="row">Nom</th><td th:text="${fiche.name}"></td></tr>
+                <tr><th scope="row">Description</th><td th:text="${fiche.description}"></td></tr>
+                <tr><th scope="row">Catégorie</th><td th:text="${fiche.category}"></td></tr>
+                <tr><th scope="row">Sous-catégorie</th><td th:text="${fiche.subcategory}"></td></tr>
+                <tr><th scope="row">Fabricant</th><td th:text="${fiche.manufacturer}"></td></tr>
+                <tr><th scope="row">Pays d'origine</th><td th:text="${fiche.country}"></td></tr>
+                <tr><th scope="row">Numéro de lot</th><td th:text="${fiche.lotNumber}"></td></tr>
+                <tr><th scope="row">Certification</th><td th:text="${fiche.certification}"></td></tr>
+                <tr><th scope="row">Commentaire</th><td th:text="${fiche.authorComment}"></td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- RG-09 : « Précédent » et « Suivant » enregistrent la saisie avant de changer d'étape. -->
+        <div class="form-actions">
+            <button type="submit" name="cible" th:value="${step - 1}" th:if="${step > 1}">Précédent</button>
+            <button type="submit" name="cible" th:value="${step}">Enregistrer</button>
+            <button type="submit" name="cible" th:value="${step + 1}" th:if="${step < 4}">Suivant</button>
+        </div>
+    </form>
+
+    <!-- US-08 CA-1 : la soumission n'est proposee que si la fiche est complete. Le refus reel est
+         cote serveur (CA-3) ; masquer le bouton n'est qu'un confort d'usage. -->
+    <form method="post" th:action="@{'/fiches/' + ${fiche.id} + '/soumettre'}" th:if="${fiche.complete}">
+        <input type="hidden" name="version" th:value="${fiche.version}"/>
+        <button type="submit">Soumettre au contrôle</button>
+    </form>
+</main>
+</body>
+</html>
