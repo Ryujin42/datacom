@@ -119,3 +119,74 @@ button[type="submit"] {
 button[type="submit"]:hover {
   opacity: 0.9;
 }
+
+.form-field textarea,
+.form-field select {
+  padding: 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.field-help {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+/* ERG-04 : l'etape courante est signalee par un libelle textuel autant que par le style. */
+ol.steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  list-style: none;
+  padding: 0;
+}
+
+ol.steps li {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+}
+
+ol.steps li.current {
+  border-color: var(--color-primary);
+  font-weight: 600;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+}
+
+.form-actions button {
+  padding: 0.6rem 1.2rem;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+table caption {
+  text-align: left;
+  font-weight: 600;
+  padding-bottom: 0.5rem;
+}
+
+table th,
+table td {
+  text-align: left;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+}
