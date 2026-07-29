@@ -24,6 +24,17 @@ public class Product {
 
     private static final Pattern REFERENCE_FORMAT = Pattern.compile("^[A-Z0-9][A-Z0-9-]{2,31}$");
 
+    // RG-14. Les memes bornes qu'en base : refusees ici avant l'ecriture, avec un message rattache
+    // au champ, plutot que remontees comme une erreur technique par le pilote JDBC.
+    public static final int MAX_NAME = 150;
+    public static final int MAX_DESCRIPTION = 2000;
+    public static final int MAX_CATEGORY = 80;
+    public static final int MAX_SUBCATEGORY = 80;
+    public static final int MAX_MANUFACTURER = 150;
+    public static final int MAX_LOT_NUMBER = 50;
+    public static final int MAX_CERTIFICATION = 100;
+    public static final int MAX_COMMENT = 1000;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -92,9 +103,13 @@ public class Product {
     /** RG-08, etape 1. RG-12 : la reference est revalidee ici, avant toute persistance. */
     public void updateIdentification(String reference, String name, String description) {
         ensureEditable();
-        if (reference != null && !REFERENCE_FORMAT.matcher(reference).matches()) {
+        if (reference != null
+                && !reference.isBlank()
+                && !REFERENCE_FORMAT.matcher(reference).matches()) {
             throw new InvalidReferenceFormatException(reference);
         }
+        ensureMaxLength(name, MAX_NAME, "name", "Nom");
+        ensureMaxLength(description, MAX_DESCRIPTION, "description", "Description");
         this.reference = reference;
         this.name = name;
         this.description = description;
@@ -104,6 +119,12 @@ public class Product {
     public void updateClassification(
             String category, String subcategory, String manufacturer, String country) {
         ensureEditable();
+        if (country != null && !country.isBlank() && !Countries.isValid(country)) {
+            throw new InvalidCountryException(country);
+        }
+        ensureMaxLength(category, MAX_CATEGORY, "category", "Categorie");
+        ensureMaxLength(subcategory, MAX_SUBCATEGORY, "subcategory", "Sous-categorie");
+        ensureMaxLength(manufacturer, MAX_MANUFACTURER, "manufacturer", "Fabricant");
         this.category = category;
         this.subcategory = subcategory;
         this.manufacturer = manufacturer;
@@ -113,6 +134,9 @@ public class Product {
     /** RG-08, etape 3. */
     public void updateTraceability(String lotNumber, String certification, String authorComment) {
         ensureEditable();
+        ensureMaxLength(lotNumber, MAX_LOT_NUMBER, "lotNumber", "Numero de lot");
+        ensureMaxLength(certification, MAX_CERTIFICATION, "certification", "Certification");
+        ensureMaxLength(authorComment, MAX_COMMENT, "authorComment", "Commentaire");
         this.lotNumber = lotNumber;
         this.certification = certification;
         this.authorComment = authorComment;
@@ -140,6 +164,12 @@ public class Product {
 
     private static boolean isNotBlank(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private static void ensureMaxLength(String value, int max, String field, String label) {
+        if (value != null && value.length() > max) {
+            throw new FieldTooLongException(field, label, max);
+        }
     }
 
     private void ensureEditable() {

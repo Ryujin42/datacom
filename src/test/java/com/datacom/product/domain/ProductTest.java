@@ -52,6 +52,35 @@ class ProductTest {
     }
 
     @Test
+    void rejectsACountryOutsideTheClosedListRg13() {
+        Product product = new Product(AUTHOR);
+
+        assertThatThrownBy(() -> product.updateClassification("Cat", null, "Fab", "ZZ"))
+                .isInstanceOf(InvalidCountryException.class);
+    }
+
+    @Test
+    void acceptsAnIsoCountryCode() {
+        Product product = new Product(AUTHOR);
+
+        product.updateClassification("Cat", null, "Fab", "FR");
+
+        assertThat(product.getCountry()).isEqualTo("FR");
+    }
+
+    @Test
+    void rejectsAValueLongerThanItsMaximumRg14() {
+        Product product = new Product(AUTHOR);
+        String tooLong = "x".repeat(Product.MAX_NAME + 1);
+
+        assertThatThrownBy(() -> product.updateIdentification("REF-001", tooLong, null))
+                .isInstanceOf(FieldTooLongException.class);
+
+        // Rien n'a ete tronque en silence : la fiche reste intacte.
+        assertThat(product.getName()).isNull();
+    }
+
+    @Test
     void navigatesFreelyBetweenTheFourSteps() {
         Product product = new Product(AUTHOR);
 
