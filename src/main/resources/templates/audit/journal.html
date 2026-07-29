@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Journal de mes décisions — DataCom</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<header class="app-header">
+    <img th:src="@{/img/datacom.webp}" alt="DataCom"/>
+    <a th:href="@{/}">Accueil</a>
+</header>
+
+<main>
+    <h1>Journal de mes décisions</h1>
+
+    <p>Ce journal ne présente que les décisions que vous avez prises.</p>
+
+    <!-- US-16 CA-2 : filtres par fiche et par periode. -->
+    <form method="get" th:action="@{/journal}">
+        <div class="form-field">
+            <label for="fiche">Fiche (identifiant)</label>
+            <input type="number" id="fiche" name="fiche" th:value="${fiche}" min="1"/>
+        </div>
+        <div class="form-field">
+            <label for="du">Du</label>
+            <input type="date" id="du" name="du" th:value="${du}"/>
+        </div>
+        <div class="form-field">
+            <label for="au">Au</label>
+            <input type="date" id="au" name="au" th:value="${au}"/>
+        </div>
+        <button type="submit">Filtrer</button>
+    </form>
+
+    <p th:if="${entrees.isEmpty()}">Aucune décision ne correspond à ces critères.</p>
+
+    <!-- US-16 CA-3 : du plus recent au plus ancien. -->
+    <table th:unless="${entrees.isEmpty()}">
+        <caption>Décisions, de la plus récente à la plus ancienne</caption>
+        <thead>
+        <tr>
+            <th scope="col">Date</th>
+            <th scope="col">Fiche</th>
+            <th scope="col">Action</th>
+            <th scope="col">De</th>
+            <th scope="col">Vers</th>
+            <th scope="col">Commentaire</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="e : ${entrees.content}">
+            <td th:text="${#temporals.format(e.occurredAt, 'dd/MM/yyyy HH:mm')}">Date</td>
+            <td><a th:href="@{'/fiches/' + ${e.productId}}" th:text="${e.productId}">42</a></td>
+            <td th:switch="${e.action.name()}">
+                <span th:case="'SUBMIT'">Soumise au contrôle</span>
+                <span th:case="'VALIDATE'">Validée</span>
+                <span th:case="'RETURN_TO_DRAFT'">Renvoyée en brouillon</span>
+            </td>
+            <td th:text="${e.fromStatus}">DRAFT</td>
+            <td th:text="${e.toStatus}">IN_REVIEW</td>
+            <td th:text="${e.comment}"></td>
+        </tr>
+        </tbody>
+    </table>
+
+    <nav aria-label="Pagination" th:if="${entrees.totalPages > 1}">
+        <p>Page <span th:text="${entrees.number + 1}">1</span> sur <span th:text="${entrees.totalPages}">1</span></p>
+        <a th:if="${entrees.hasPrevious()}"
+           th:href="@{/journal(page=${entrees.number - 1}, fiche=${fiche}, du=${du}, au=${au})}">Page précédente</a>
+        <a th:if="${entrees.hasNext()}"
+           th:href="@{/journal(page=${entrees.number + 1}, fiche=${fiche}, du=${du}, au=${au})}">Page suivante</a>
+    </nav>
+</main>
+</body>
+</html>
