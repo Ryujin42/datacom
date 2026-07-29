@@ -17,6 +17,12 @@
     <!-- ERG-05 : message d'erreur explicite, en francais, annonce aux lecteurs d'ecran. -->
     <p role="alert" class="form-error" th:if="${errorMessage}" th:text="${errorMessage}">Erreur</p>
 
+    <!-- US-11 CA-2 : motif du dernier renvoi en brouillon, tel que le controleur l'a ecrit. -->
+    <aside class="return-comment" th:if="${returnComment}">
+        <h2>Cette fiche vous a été renvoyée pour correction</h2>
+        <p th:text="${returnComment}">Commentaire</p>
+    </aside>
+
     <!-- US-06 CA-2 : etape courante et completude. ERG-04 : l'etat n'est jamais porte par la
          seule couleur, un libelle textuel l'accompagne toujours. -->
     <nav aria-label="Étapes de saisie">

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Contrôle d'une fiche produit — DataCom</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<header class="app-header">
+    <img th:src="@{/img/datacom.webp}" alt="DataCom"/>
+    <a th:href="@{/controle}">Fiches à contrôler</a>
+</header>
+
+<main>
+    <h1>Contrôle de la fiche <span th:text="${fiche.reference}">Référence</span></h1>
+
+    <p role="alert" class="form-error" th:if="${errorMessage}" th:text="${errorMessage}">Erreur</p>
+
+    <!-- US-10 CA-1 : l'integralite des donnees, en lecture seule, avant toute decision. -->
+    <table>
+        <caption>Données soumises</caption>
+        <tbody>
+        <tr><th scope="row">Référence</th><td th:text="${fiche.reference}"></td></tr>
+        <tr><th scope="row">Nom</th><td th:text="${fiche.name}"></td></tr>
+        <tr><th scope="row">Description</th><td th:text="${fiche.description}"></td></tr>
+        <tr><th scope="row">Catégorie</th><td th:text="${fiche.category}"></td></tr>
+        <tr><th scope="row">Sous-catégorie</th><td th:text="${fiche.subcategory}"></td></tr>
+        <tr><th scope="row">Fabricant</th><td th:text="${fiche.manufacturer}"></td></tr>
+        <tr><th scope="row">Pays d'origine</th><td th:text="${fiche.country}"></td></tr>
+        <tr><th scope="row">Numéro de lot</th><td th:text="${fiche.lotNumber}"></td></tr>
+        <tr><th scope="row">Certification</th><td th:text="${fiche.certification}"></td></tr>
+        <tr><th scope="row">Commentaire de l'auteur</th><td th:text="${fiche.authorComment}"></td></tr>
+        </tbody>
+    </table>
+
+    <!-- US-10 CA-6 / US-11 CA-1 : les decisions ne sont proposees que pour une fiche en controle.
+         Le refus reel reste cote serveur (RG-04), masquer les boutons n'est qu'un confort. -->
+    <div th:if="${fiche.status == 'IN_REVIEW'}">
+        <section>
+            <h2>Valider la fiche</h2>
+            <!-- US-10 CA-2 : la validation est definitive (RG-05), donc elle exige une
+                 confirmation explicite plutot qu'un simple clic. -->
+            <form method="post" th:action="@{'/controle/' + ${fiche.id} + '/valider'}">
+                <div class="form-field">
+                    <label for="confirmation">
+                        <input type="checkbox" id="confirmation" name="confirmation"
+                               required="required"/>
+                        Je confirme avoir contrôlé cette fiche. La validation est définitive.
+                    </label>
+                </div>
+                <button type="submit">Valider définitivement</button>
+            </form>
+        </section>
+
+        <section>
+            <h2>Renvoyer en brouillon</h2>
+            <form method="post" th:action="@{'/controle/' + ${fiche.id} + '/renvoyer'}">
+                <div class="form-field">
+                    <label for="comment">Commentaire pour l'auteur (facultatif)</label>
+                    <textarea id="comment" name="comment" rows="3" maxlength="1000"
+                              aria-describedby="comment-aide"></textarea>
+                    <p id="comment-aide" class="field-help">
+                        S'il est renseigné, l'auteur le verra en rouvrant sa fiche.
+                    </p>
+                </div>
+                <button type="submit">Renvoyer en brouillon</button>
+            </form>
+        </section>
+    </div>
+
+    <p th:unless="${fiche.status == 'IN_REVIEW'}">
+        Cette fiche n'est pas en attente de contrôle : aucune décision n'est possible.
+    </p>
+</main>
+</body>
+</html>

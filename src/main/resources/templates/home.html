@@ -21,6 +21,10 @@
         <button type="submit">Créer une fiche produit</button>
     </form>
 
+    <p th:if="${role.name() == 'VALIDATOR'}">
+        <a th:href="@{/controle}">Fiches à contrôler</a>
+    </p>
+
     <p><a th:href="@{/password/change}">Changer mon mot de passe</a></p>
 </main>
 </body>

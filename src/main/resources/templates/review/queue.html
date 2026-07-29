@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Fiches à contrôler — DataCom</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<header class="app-header">
+    <img th:src="@{/img/datacom.webp}" alt="DataCom"/>
+    <a th:href="@{/}">Accueil</a>
+</header>
+
+<main>
+    <h1>Fiches à contrôler</h1>
+
+    <p th:if="${fiches.isEmpty()}">Aucune fiche n'est en attente de contrôle.</p>
+
+    <table th:unless="${fiches.isEmpty()}">
+        <caption>
+            Fiches soumises au contrôle, de la plus ancienne à la plus récente
+        </caption>
+        <thead>
+        <tr>
+            <th scope="col">Référence</th>
+            <th scope="col">Nom</th>
+            <th scope="col">Fabricant</th>
+            <th scope="col">Auteur</th>
+            <th scope="col">Soumise le</th>
+            <th scope="col">Action</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="f : ${fiches.content}">
+            <td th:text="${f.reference}">REF</td>
+            <td th:text="${f.name}">Nom</td>
+            <td th:text="${f.manufacturer}">Fabricant</td>
+            <td th:text="${f.author}">Auteur</td>
+            <!-- RG-15 : horodatage stocke en UTC, affiche dans le fuseau du serveur. -->
+            <td th:text="${#temporals.format(f.submittedAt, 'dd/MM/yyyy HH:mm')}">Date</td>
+            <td><a th:href="@{'/controle/' + ${f.id}}">Contrôler</a></td>
+        </tr>
+        </tbody>
+    </table>
+
+    <!-- ECO-11 : liste bornee a 20 par page, jamais de requete non bornee. -->
+    <nav aria-label="Pagination" th:if="${fiches.totalPages > 1}">
+        <p>
+            Page <span th:text="${fiches.number + 1}">1</span>
+            sur <span th:text="${fiches.totalPages}">1</span>
+        </p>
+        <a th:if="${fiches.hasPrevious()}"
+           th:href="@{/controle(page=${fiches.number - 1})}">Page précédente</a>
+        <a th:if="${fiches.hasNext()}"
+           th:href="@{/controle(page=${fiches.number + 1})}">Page suivante</a>
+    </nav>
+</main>
+</body>
+</html>
