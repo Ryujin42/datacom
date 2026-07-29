@@ -1,17 +1,12 @@
 <!DOCTYPE html>
 <html lang="fr" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8"/>
-    <title>Contrôle d'une fiche produit — DataCom</title>
-    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+    <th:block th:replace="~{fragments/layout :: pageHead('Contrôle de conformité')}"></th:block>
 </head>
 <body>
-<header class="app-header">
-    <img th:src="@{/img/datacom.webp}" alt="DataCom"/>
-    <a th:href="@{/controle}">Fiches à contrôler</a>
-</header>
+<header th:replace="~{fragments/layout :: pageHeader}"></header>
 
-<main>
+<main id="contenu">
     <h1>Contrôle de la fiche <span th:text="${fiche.reference}">Référence</span></h1>
 
     <p role="alert" class="form-error" th:if="${errorMessage}" th:text="${errorMessage}">Erreur</p>

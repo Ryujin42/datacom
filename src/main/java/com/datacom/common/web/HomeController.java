@@ -1,7 +1,6 @@
 package com.datacom.common.web;
 
 import com.datacom.product.application.ProductCatalogService;
-import com.datacom.user.domain.Role;
 import com.datacom.user.infrastructure.UserPrincipal;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -26,13 +25,8 @@ public class HomeController {
         model.addAttribute("firstname", principal.getFirstname());
         model.addAttribute("lastname", principal.getLastname());
         model.addAttribute("role", principal.getRole());
-        model.addAttribute("roleLabel", labelOf(principal.getRole()));
         model.addAttribute(
                 "counts", catalogService.homeCounts(principal.getId(), principal.getRole()));
         return "home";
-    }
-
-    private static String labelOf(Role role) {
-        return role == Role.VALIDATOR ? "Responsable conformité" : "Opérateur de saisie";
     }
 }

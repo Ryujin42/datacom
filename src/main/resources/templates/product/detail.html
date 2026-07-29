@@ -1,17 +1,12 @@
 <!DOCTYPE html>
 <html lang="fr" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8"/>
-    <title th:text="'Fiche ' + (${fiche.reference} ?: 'produit') + ' — DataCom'">Fiche produit — DataCom</title>
-    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+    <th:block th:replace="~{fragments/layout :: pageHead('Fiche ' + (${fiche.reference} ?: 'produit'))}"></th:block>
 </head>
 <body>
-<header class="app-header">
-    <img th:src="@{/img/datacom.webp}" alt="DataCom"/>
-    <a th:href="@{/fiches}">Fiches produits</a>
-</header>
+<header th:replace="~{fragments/layout :: pageHeader}"></header>
 
-<main>
+<main id="contenu">
     <h1>Fiche <span th:text="${fiche.reference} ?: '(sans référence)'">Référence</span></h1>
 
     <p>

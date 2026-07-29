@@ -72,11 +72,23 @@ main {
   border-radius: 3px;
 }
 
-footer.app-footer {
-  text-align: center;
-  font-size: 0.85rem;
-  color: #555;
-  padding: 1.5rem;
+/* ERG-02 : lien d'evitement, hors ecran jusqu'a ce qu'il recoive le focus. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--color-bg);
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-primary);
+}
+
+.skip-link:focus {
+  left: 0;
+  z-index: 10;
+}
+
+header.app-header .current-user {
+  margin-left: auto;
 }
 
 .auth-page {
