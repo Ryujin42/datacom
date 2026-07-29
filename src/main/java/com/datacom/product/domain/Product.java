@@ -1,0 +1,264 @@
+package com.datacom.product.domain;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+import java.time.Instant;
+import java.util.regex.Pattern;
+
+/**
+ * RG-03..18. Le statut et l'etape courante ne sont jamais recus du client (RG-06) : ils ne changent
+ * qu'a travers {@link #submit}, {@link #validate}, {@link #returnToDraft} et {@link #moveToStep},
+ * qui lisent et ecrivent l'etat porte par cette entite, elle-meme chargee depuis la base a chaque
+ * requete.
+ */
+@Entity
+@Table(name = "products")
+public class Product {
+
+    private static final Pattern REFERENCE_FORMAT = Pattern.compile("^[A-Z0-9][A-Z0-9-]{2,31}$");
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(length = 32)
+    private String reference;
+
+    @Column(length = 150)
+    private String name;
+
+    @Column(length = 2000)
+    private String description;
+
+    @Column(length = 80)
+    private String category;
+
+    @Column(length = 80)
+    private String subcategory;
+
+    @Column(length = 150)
+    private String manufacturer;
+
+    @Column(length = 2)
+    private String country;
+
+    @Column(name = "lot_number", length = 50)
+    private String lotNumber;
+
+    @Column(length = 100)
+    private String certification;
+
+    @Column(name = "author_comment", length = 1000)
+    private String authorComment;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private ProductStatus status = ProductStatus.DRAFT;
+
+    @Column(name = "current_step", nullable = false)
+    private short currentStep = 1;
+
+    @Column(name = "created_by", nullable = false, updatable = false)
+    private Long createdBy;
+
+    @Column(name = "validated_by")
+    private Long validatedBy;
+
+    @Column(name = "submitted_at")
+    private Instant submittedAt;
+
+    @Column(name = "validated_at")
+    private Instant validatedAt;
+
+    @Version
+    @Column(nullable = false)
+    private long version;
+
+    protected Product() {
+        // JPA
+    }
+
+    public Product(Long createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    /** RG-08, etape 1. RG-12 : la reference est revalidee ici, avant toute persistance. */
+    public void updateIdentification(String reference, String name, String description) {
+        ensureEditable();
+        if (reference != null && !REFERENCE_FORMAT.matcher(reference).matches()) {
+            throw new InvalidReferenceFormatException(reference);
+        }
+        this.reference = reference;
+        this.name = name;
+        this.description = description;
+    }
+
+    /** RG-08, etape 2. RG-13 : la valeur de {@code country} est revalidee cote serveur. */
+    public void updateClassification(
+            String category, String subcategory, String manufacturer, String country) {
+        ensureEditable();
+        this.category = category;
+        this.subcategory = subcategory;
+        this.manufacturer = manufacturer;
+        this.country = country;
+    }
+
+    /** RG-08, etape 3. */
+    public void updateTraceability(String lotNumber, String certification, String authorComment) {
+        ensureEditable();
+        this.lotNumber = lotNumber;
+        this.certification = certification;
+        this.authorComment = authorComment;
+    }
+
+    /** RG-09 : navigation libre entre les quatre etapes d'une fiche encore modifiable. */
+    public void moveToStep(int step) {
+        ensureEditable();
+        if (step < 1 || step > 4) {
+            throw new IllegalArgumentException("Etape invalide : " + step);
+        }
+        this.currentStep = (short) step;
+    }
+
+    /** RG-08 : champs obligatoires des etapes 1 a 3. */
+    public boolean isComplete() {
+        return isNotBlank(reference)
+                && isNotBlank(name)
+                && isNotBlank(category)
+                && isNotBlank(manufacturer)
+                && isNotBlank(country)
+                && isNotBlank(lotNumber)
+                && isNotBlank(certification);
+    }
+
+    private static boolean isNotBlank(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private void ensureEditable() {
+        if (status != ProductStatus.DRAFT) {
+            throw new ProductNotEditableException(status);
+        }
+    }
+
+    /** RG-04 : DRAFT -> IN_REVIEW, par l'auteur, fiche complete (RG-08) uniquement. */
+    public void submit(Long actingUserId, Instant now) {
+        if (status != ProductStatus.DRAFT) {
+            throw new InvalidProductTransitionException("soumettre", status);
+        }
+        if (!createdBy.equals(actingUserId)) {
+            throw new UnauthorizedProductActionException(
+                    "Seul l'auteur de la fiche peut la soumettre au controle.");
+        }
+        if (!isComplete()) {
+            throw new IncompleteProductException();
+        }
+        status = ProductStatus.IN_REVIEW;
+        submittedAt = now;
+    }
+
+    /** RG-04/RG-02 : IN_REVIEW -> VALIDATED, par un utilisateur autre que l'auteur. */
+    public void validate(Long actingUserId, Instant now) {
+        if (status != ProductStatus.IN_REVIEW) {
+            throw new InvalidProductTransitionException("valider", status);
+        }
+        if (createdBy.equals(actingUserId)) {
+            throw new UnauthorizedProductActionException(
+                    "RG-02 : l'auteur d'une fiche ne peut pas la valider lui-meme.");
+        }
+        status = ProductStatus.VALIDATED;
+        validatedBy = actingUserId;
+        validatedAt = now;
+    }
+
+    /** RG-04/RG-02 : IN_REVIEW -> DRAFT, par un utilisateur autre que l'auteur. */
+    public void returnToDraft(Long actingUserId) {
+        if (status != ProductStatus.IN_REVIEW) {
+            throw new InvalidProductTransitionException("renvoyer en brouillon", status);
+        }
+        if (createdBy.equals(actingUserId)) {
+            throw new UnauthorizedProductActionException(
+                    "RG-02 : l'auteur d'une fiche ne peut pas la renvoyer en brouillon lui-meme.");
+        }
+        status = ProductStatus.DRAFT;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getReference() {
+        return reference;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public String getSubcategory() {
+        return subcategory;
+    }
+
+    public String getManufacturer() {
+        return manufacturer;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
+    public String getLotNumber() {
+        return lotNumber;
+    }
+
+    public String getCertification() {
+        return certification;
+    }
+
+    public String getAuthorComment() {
+        return authorComment;
+    }
+
+    public ProductStatus getStatus() {
+        return status;
+    }
+
+    public short getCurrentStep() {
+        return currentStep;
+    }
+
+    public Long getCreatedBy() {
+        return createdBy;
+    }
+
+    public Long getValidatedBy() {
+        return validatedBy;
+    }
+
+    public Instant getSubmittedAt() {
+        return submittedAt;
+    }
+
+    public Instant getValidatedAt() {
+        return validatedAt;
+    }
+
+    public long getVersion() {
+        return version;
+    }
+}
