@@ -14,10 +14,20 @@ server:
       cookie:
         secure: true
 
+# ECO-13 : INFO en production, SQL desactive (il double le volume de journaux sans rien apporter
+# une fois l'application stabilisee), et rotation a 30 jours pour que les journaux ne croissent pas
+# indefiniment sur le disque.
 logging:
   level:
     root: INFO
     com.datacom: INFO
     org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: WARN
   file:
     name: /var/log/datacom/datacom.log
+  logback:
+    rollingpolicy:
+      file-name-pattern: /var/log/datacom/datacom-%d{yyyy-MM-dd}.%i.log.gz
+      max-history: 30
+      max-file-size: 10MB
+      total-size-cap: 500MB
