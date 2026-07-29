@@ -1,8 +1,12 @@
 package com.datacom.product.application;
 
+import com.datacom.audit.domain.AuditAction;
+import com.datacom.audit.domain.AuditEntry;
+import com.datacom.audit.infrastructure.AuditEntryRepository;
 import com.datacom.product.domain.Product;
 import com.datacom.product.infrastructure.ProductRepository;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,9 +24,26 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProductEditService {
 
     private final ProductRepository productRepository;
+    private final AuditEntryRepository auditEntryRepository;
 
-    public ProductEditService(ProductRepository productRepository) {
+    public ProductEditService(
+            ProductRepository productRepository, AuditEntryRepository auditEntryRepository) {
         this.productRepository = productRepository;
+        this.auditEntryRepository = auditEntryRepository;
+    }
+
+    /**
+     * US-11 CA-2 : le commentaire du dernier renvoi en brouillon, a montrer a l'auteur quand il
+     * rouvre sa fiche. Vide s'il n'y a jamais eu de renvoi, ou si le controleur n'a rien ecrit — le
+     * commentaire est optionnel.
+     */
+    @Transactional(readOnly = true)
+    public Optional<String> lastReturnComment(Long productId) {
+        return auditEntryRepository
+                .findFirstByProductIdAndActionOrderByOccurredAtDesc(
+                        productId, AuditAction.RETURN_TO_DRAFT)
+                .map(AuditEntry::getComment)
+                .filter(comment -> !comment.isBlank());
     }
 
     /** US-05 : la fiche nait en DRAFT, etape 1, rattachee a son auteur. */

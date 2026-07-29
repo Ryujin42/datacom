@@ -147,5 +147,7 @@ public class ProductController {
         model.addAttribute("fiche", form);
         model.addAttribute("step", step);
         model.addAttribute("countries", Countries.all());
+        // US-11 CA-2 : si la fiche revient d'un renvoi commente, l'auteur doit lire le motif.
+        model.addAttribute("returnComment", editService.lastReturnComment(form.id()).orElse(null));
     }
 }
