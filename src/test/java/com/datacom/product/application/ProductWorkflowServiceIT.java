@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -29,6 +30,12 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("dev")
 @Testcontainers
+// Les deux roles a la fois : ces tests portent sur la transaction et le journal, pas sur
+// l'autorisation par role (SEC-02), couverte separement par ProductAuthorizationIT. Les donner tous
+// les deux isole ce qui est teste ici — et rend d'autant plus parlant le fait que RG-02 refuse
+// quand
+// meme l'auto-validation : le controle d'identite est bien distinct du controle de role.
+@WithMockUser(roles = {"OPERATOR", "VALIDATOR"})
 class ProductWorkflowServiceIT {
 
     @Container @ServiceConnection

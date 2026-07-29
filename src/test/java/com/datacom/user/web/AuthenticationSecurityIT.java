@@ -5,6 +5,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -97,6 +98,31 @@ class AuthenticationSecurityIT {
         HttpSession sessionAfterLogin = result.getRequest().getSession(false);
         org.assertj.core.api.Assertions.assertThat(sessionAfterLogin.getId())
                 .isNotEqualTo(idBeforeLogin);
+    }
+
+    /**
+     * SEC-06/SEC-09 : en-tetes de durcissement presents sur une reponse ordinaire. La CSP interdit
+     * tout script, ce qui neutralise un XSS stocke meme si un echappement venait a manquer.
+     */
+    @Test
+    void hardeningHeadersArePresentOnEveryResponse() throws Exception {
+        mockMvc.perform(get("/login"))
+                .andExpect(status().isOk())
+                .andExpect(
+                        header().string(
+                                        "Content-Security-Policy",
+                                        containsString("script-src 'none'")))
+                .andExpect(
+                        header().string(
+                                        "Content-Security-Policy",
+                                        containsString("default-src 'self'")))
+                .andExpect(
+                        header().string(
+                                        "Content-Security-Policy",
+                                        containsString("frame-ancestors 'none'")))
+                .andExpect(header().string("Referrer-Policy", "same-origin"))
+                .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+                .andExpect(header().string("X-Frame-Options", "DENY"));
     }
 
     /** RG-22 : verrouillage apres 5 echecs sur le meme compte. */

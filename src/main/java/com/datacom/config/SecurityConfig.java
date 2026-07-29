@@ -3,7 +3,9 @@ package com.datacom.config;
 import org.springframework.boot.web.servlet.ServletListenerRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.annotation.web.configurers.SessionManagementConfigurer;
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.core.session.SessionRegistryImpl;
@@ -11,6 +13,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
 
 /**
@@ -18,6 +21,7 @@ import org.springframework.security.web.session.HttpSessionEventPublisher;
  * defauts implicites) plutot que de dependre de comportements par convention.
  */
 @Configuration
+@EnableMethodSecurity
 public class SecurityConfig {
 
     /** RG-20 : bcrypt, cout >= 12. */
@@ -48,6 +52,30 @@ public class SecurityConfig {
                 response.sendRedirect(request.getContextPath() + "/login?error");
     }
 
+    /**
+     * SEC-06/SEC-09. Spring Security pose deja X-Content-Type-Options, X-Frame-Options et HSTS par
+     * defaut ; la CSP et Referrer-Policy, non. La politique est restrictive par construction :
+     * l'application n'a ni JavaScript, ni style en ligne, ni ressource externe, donc {@code 'self'}
+     * suffit et tout le reste est refuse.
+     */
+    private static void hardenResponseHeaders(HeadersConfigurer<HttpSecurity> headers) {
+        headers.contentSecurityPolicy(
+                        csp ->
+                                csp.policyDirectives(
+                                        "default-src 'self'; "
+                                                + "script-src 'none'; "
+                                                + "style-src 'self'; "
+                                                + "img-src 'self'; "
+                                                + "form-action 'self'; "
+                                                + "frame-ancestors 'none'; "
+                                                + "base-uri 'none'; "
+                                                + "object-src 'none'"))
+                .referrerPolicy(
+                        referrer ->
+                                referrer.policy(
+                                        ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN));
+    }
+
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http, AuthenticationFailureHandler failureHandler) throws Exception {
@@ -76,6 +104,7 @@ public class SecurityConfig {
                                         .invalidateHttpSession(true)
                                         .deleteCookies("JSESSIONID")
                                         .permitAll())
+                .headers(SecurityConfig::hardenResponseHeaders)
                 .sessionManagement(
                         session ->
                                 session.sessionFixation(
