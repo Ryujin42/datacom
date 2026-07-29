@@ -8,22 +8,45 @@
 <body>
 <header class="app-header">
     <img th:src="@{/img/datacom.webp}" alt="DataCom"/>
-    <span th:text="${firstname} + ' ' + ${lastname} + ' — ' + ${role}">Utilisateur</span>
+    <!-- US-18 CA-1 : identite et role. -->
+    <span th:text="${firstname} + ' ' + ${lastname} + ' — ' + ${roleLabel}">Utilisateur</span>
     <form method="post" th:action="@{/logout}" style="margin-left:auto">
         <button type="submit">Se déconnecter</button>
     </form>
 </header>
+
 <main>
     <h1>Bienvenue, <span th:text="${firstname}">Prénom</span></h1>
 
-    <!-- US-05 CA-1 : la creation est un POST, jamais une simple navigation (corrige B6). -->
-    <form method="post" th:action="@{/fiches}" th:if="${role.name() == 'OPERATOR'}">
-        <button type="submit">Créer une fiche produit</button>
-    </form>
+    <!-- US-18 CA-2 : les actions pertinentes pour ce role, et leur decompte. -->
+    <section th:if="${role.name() == 'OPERATOR'}">
+        <h2>Mes fiches</h2>
+        <p>
+            Vous avez
+            <strong th:text="${counts.myDrafts}">0</strong>
+            fiche(s) en cours de saisie.
+        </p>
+        <ul>
+            <li><a th:href="@{/fiches}">Consulter mes fiches</a></li>
+        </ul>
+        <form method="post" th:action="@{/fiches}">
+            <button type="submit">Créer une fiche produit</button>
+        </form>
+    </section>
 
-    <p th:if="${role.name() == 'VALIDATOR'}">
-        <a th:href="@{/controle}">Fiches à contrôler</a>
-    </p>
+    <section th:if="${role.name() == 'VALIDATOR'}">
+        <h2>Contrôle de conformité</h2>
+        <p>
+            <strong th:text="${counts.awaitingReview}">0</strong>
+            fiche(s) en attente de contrôle.
+        </p>
+        <ul>
+            <li><a th:href="@{/controle}">Fiches à contrôler</a></li>
+            <li><a th:href="@{/fiches}">Consulter toutes les fiches</a></li>
+            <li><a th:href="@{/fiches/recherche}">Rechercher une fiche</a></li>
+            <li><a th:href="@{/journal}">Journal de mes décisions</a></li>
+        </ul>
+    </section>
 
     <p><a th:href="@{/password/change}">Changer mon mot de passe</a></p>
 </main>

@@ -1,6 +1,7 @@
 package com.datacom.product.web;
 
 import com.datacom.product.domain.UnauthorizedProductActionException;
+import java.util.NoSuchElementException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -22,5 +23,15 @@ public class ProductExceptionHandler {
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public String handleUnauthorized() {
         return "error/403";
+    }
+
+    /**
+     * US-13 CA-3 : un identifiant inexistant donne un 404 applicatif, pas une trace technique. Le
+     * legacy affichait une erreur brute dans ce cas (B1, ELEV-5).
+     */
+    @ExceptionHandler(NoSuchElementException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public String handleNotFound() {
+        return "error/404";
     }
 }

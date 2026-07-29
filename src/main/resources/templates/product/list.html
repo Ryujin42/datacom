@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Mes fiches produits — DataCom</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<header class="app-header">
+    <img th:src="@{/img/datacom.webp}" alt="DataCom"/>
+    <a th:href="@{/}">Accueil</a>
+</header>
+
+<main>
+    <h1>Fiches produits</h1>
+
+    <!-- US-12 CA-6 : filtre par etat. -->
+    <form method="get" th:action="@{/fiches}">
+        <div class="form-field">
+            <label for="statut">Filtrer par état</label>
+            <select id="statut" name="statut">
+                <option value="">Tous les états</option>
+                <option value="DRAFT" th:selected="${statutCourant?.name() == 'DRAFT'}">Brouillon</option>
+                <option value="IN_REVIEW" th:selected="${statutCourant?.name() == 'IN_REVIEW'}">En contrôle</option>
+                <option value="VALIDATED" th:selected="${statutCourant?.name() == 'VALIDATED'}">Validée</option>
+            </select>
+        </div>
+        <button type="submit">Filtrer</button>
+    </form>
+
+    <!-- US-12 CA-8 : liste vide, message explicite et action de creation. -->
+    <div th:if="${fiches.isEmpty()}">
+        <p>Aucune fiche ne correspond à cette recherche.</p>
+        <form method="post" th:action="@{/fiches}">
+            <button type="submit">Créer une fiche produit</button>
+        </form>
+    </div>
+
+    <table th:unless="${fiches.isEmpty()}">
+        <caption>Fiches produits</caption>
+        <thead>
+        <tr>
+            <!-- US-12 CA-5 : tri sur reference, nom et date de mise a jour. -->
+            <th scope="col"><a th:href="@{/fiches(tri='reference', statut=${statutCourant})}">Référence</a></th>
+            <th scope="col"><a th:href="@{/fiches(tri='name', statut=${statutCourant})}">Nom</a></th>
+            <th scope="col">État</th>
+            <th scope="col">Étape</th>
+            <th scope="col"><a th:href="@{/fiches(tri='updatedAt', statut=${statutCourant})}">Mise à jour</a></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="f : ${fiches.content}">
+            <td><a th:href="@{'/fiches/' + ${f.id}}" th:text="${f.reference} ?: '(sans référence)'">REF</a></td>
+            <td th:text="${f.name}">Nom</td>
+            <!-- US-12 CA-3 : libelle lisible ; le repere visuel ne repose jamais sur la seule
+                 couleur, le texte porte l'information (ERG-04). -->
+            <td>
+                <span class="status-badge" th:classappend="'status-' + ${f.status}"
+                      th:switch="${f.status.name()}">
+                    <span th:case="'DRAFT'">Brouillon</span>
+                    <span th:case="'IN_REVIEW'">En contrôle</span>
+                    <span th:case="'VALIDATED'">Validée</span>
+                </span>
+            </td>
+            <td th:text="${f.currentStep} + ' / 4'">1 / 4</td>
+            <td th:text="${#temporals.format(f.updatedAt, 'dd/MM/yyyy HH:mm')}">Date</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <!-- US-12 CA-4 / ECO-11 : 20 par page. -->
+    <nav aria-label="Pagination" th:if="${fiches.totalPages > 1}">
+        <p>Page <span th:text="${fiches.number + 1}">1</span> sur <span th:text="${fiches.totalPages}">1</span></p>
+        <a th:if="${fiches.hasPrevious()}"
+           th:href="@{/fiches(page=${fiches.number - 1}, tri=${tri}, statut=${statutCourant})}">Page précédente</a>
+        <a th:if="${fiches.hasNext()}"
+           th:href="@{/fiches(page=${fiches.number + 1}, tri=${tri}, statut=${statutCourant})}">Page suivante</a>
+    </nav>
+</main>
+</body>
+</html>

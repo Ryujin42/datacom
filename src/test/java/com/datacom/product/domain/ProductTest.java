@@ -51,6 +51,22 @@ class ProductTest {
                 .isInstanceOf(InvalidReferenceFormatException.class);
     }
 
+    /** RG-15/US-12 CA-2 : la date de mise a jour suit reellement les modifications. */
+    @Test
+    void everyModificationMovesTheUpdatedAtTimestamp() throws InterruptedException {
+        Product product = new Product(AUTHOR);
+        java.time.Instant before = product.getUpdatedAt();
+
+        Thread.sleep(1);
+        product.updateIdentification("REF-001", "Produit", null);
+        assertThat(product.getUpdatedAt()).isAfter(before);
+
+        java.time.Instant afterEdit = product.getUpdatedAt();
+        Thread.sleep(1);
+        product.moveToStep(2);
+        assertThat(product.getUpdatedAt()).isAfter(afterEdit);
+    }
+
     @Test
     void rejectsACountryOutsideTheClosedListRg13() {
         Product product = new Product(AUTHOR);

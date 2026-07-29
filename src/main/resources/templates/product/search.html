@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Rechercher une fiche — DataCom</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<header class="app-header">
+    <img th:src="@{/img/datacom.webp}" alt="DataCom"/>
+    <a th:href="@{/}">Accueil</a>
+</header>
+
+<main>
+    <h1>Rechercher une fiche</h1>
+
+    <!-- Recherche en GET : elle n'a aucun effet de bord, et l'URL reste partageable (SEC-04). -->
+    <form method="get" th:action="@{/fiches/recherche}" role="search">
+        <div class="form-field">
+            <label for="terme">Référence, nom ou fabricant</label>
+            <input type="search" id="terme" name="terme" th:value="${terme}"
+                   aria-describedby="terme-aide"/>
+            <p id="terme-aide" class="field-help">
+                La casse et les accents sont ignorés.
+            </p>
+        </div>
+        <button type="submit">Rechercher</button>
+    </form>
+
+    <p th:if="${!#strings.isEmpty(terme) and fiches.isEmpty()}">
+        Aucune fiche ne correspond à « <span th:text="${terme}">terme</span> ».
+    </p>
+
+    <table th:unless="${fiches.isEmpty()}">
+        <caption>Résultats</caption>
+        <thead>
+        <tr>
+            <th scope="col">Référence</th>
+            <th scope="col">Nom</th>
+            <th scope="col">État</th>
+            <th scope="col">Mise à jour</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="f : ${fiches.content}">
+            <td><a th:href="@{'/fiches/' + ${f.id}}" th:text="${f.reference} ?: '(sans référence)'">REF</a></td>
+            <td th:text="${f.name}">Nom</td>
+            <td th:switch="${f.status.name()}">
+                <span th:case="'DRAFT'">Brouillon</span>
+                <span th:case="'IN_REVIEW'">En contrôle</span>
+                <span th:case="'VALIDATED'">Validée</span>
+            </td>
+            <td th:text="${#temporals.format(f.updatedAt, 'dd/MM/yyyy HH:mm')}">Date</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <!-- US-14 CA-5 : resultats pagines. -->
+    <nav aria-label="Pagination" th:if="${fiches.totalPages > 1}">
+        <p>Page <span th:text="${fiches.number + 1}">1</span> sur <span th:text="${fiches.totalPages}">1</span></p>
+        <a th:if="${fiches.hasPrevious()}"
+           th:href="@{/fiches/recherche(terme=${terme}, page=${fiches.number - 1})}">Page précédente</a>
+        <a th:if="${fiches.hasNext()}"
+           th:href="@{/fiches/recherche(terme=${terme}, page=${fiches.number + 1})}">Page suivante</a>
+    </nav>
+</main>
+</body>
+</html>
