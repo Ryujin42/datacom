@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="'Fiche ' + (${fiche.reference} ?: 'produit') + ' — DataCom'">Fiche produit — DataCom</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<header class="app-header">
+    <img th:src="@{/img/datacom.webp}" alt="DataCom"/>
+    <a th:href="@{/fiches}">Fiches produits</a>
+</header>
+
+<main>
+    <h1>Fiche <span th:text="${fiche.reference} ?: '(sans référence)'">Référence</span></h1>
+
+    <p>
+        État :
+        <span class="status-badge" th:classappend="'status-' + ${fiche.status}"
+              th:switch="${fiche.status}">
+            <span th:case="'DRAFT'">Brouillon</span>
+            <span th:case="'IN_REVIEW'">En contrôle</span>
+            <span th:case="'VALIDATED'">Validée</span>
+        </span>
+    </p>
+
+    <!-- US-13 CA-1 : toutes les donnees, groupees par etape. -->
+    <section>
+        <h2>Étape 1 — Identification</h2>
+        <table>
+            <caption>Identification</caption>
+            <tbody>
+            <tr><th scope="row">Référence</th><td th:text="${fiche.reference}"></td></tr>
+            <tr><th scope="row">Nom</th><td th:text="${fiche.name}"></td></tr>
+            <tr><th scope="row">Description</th><td th:text="${fiche.description}"></td></tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section>
+        <h2>Étape 2 — Classification</h2>
+        <table>
+            <caption>Classification</caption>
+            <tbody>
+            <tr><th scope="row">Catégorie</th><td th:text="${fiche.category}"></td></tr>
+            <tr><th scope="row">Sous-catégorie</th><td th:text="${fiche.subcategory}"></td></tr>
+            <tr><th scope="row">Fabricant</th><td th:text="${fiche.manufacturer}"></td></tr>
+            <tr><th scope="row">Pays d'origine</th><td th:text="${fiche.country}"></td></tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section>
+        <h2>Étape 3 — Traçabilité et conformité</h2>
+        <table>
+            <caption>Traçabilité et conformité</caption>
+            <tbody>
+            <tr><th scope="row">Numéro de lot</th><td th:text="${fiche.lotNumber}"></td></tr>
+            <tr><th scope="row">Certification</th><td th:text="${fiche.certification}"></td></tr>
+            <tr><th scope="row">Commentaire</th><td th:text="${fiche.authorComment}"></td></tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- US-13 CA-4 : historique des transitions, renvois et commentaires compris. -->
+    <section>
+        <h2>Historique</h2>
+        <p th:if="${historique.isEmpty()}">Cette fiche n'a encore fait l'objet d'aucune décision.</p>
+        <table th:unless="${historique.isEmpty()}">
+            <caption>Décisions, de la plus récente à la plus ancienne</caption>
+            <thead>
+            <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Action</th>
+                <th scope="col">De</th>
+                <th scope="col">Vers</th>
+                <th scope="col">Commentaire</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="e : ${historique}">
+                <td th:text="${#temporals.format(e.occurredAt, 'dd/MM/yyyy HH:mm')}">Date</td>
+                <td th:switch="${e.action.name()}">
+                    <span th:case="'SUBMIT'">Soumise au contrôle</span>
+                    <span th:case="'VALIDATE'">Validée</span>
+                    <span th:case="'RETURN_TO_DRAFT'">Renvoyée en brouillon</span>
+                </td>
+                <td th:text="${e.fromStatus}">DRAFT</td>
+                <td th:text="${e.toStatus}">IN_REVIEW</td>
+                <td th:text="${e.comment}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <p th:if="${modifiable and fiche.status == 'DRAFT'}">
+        <a th:href="@{'/fiches/' + ${fiche.id} + '/etape/' + ${fiche.currentStep}}">Reprendre la saisie</a>
+    </p>
+</main>
+</body>
+</html>
