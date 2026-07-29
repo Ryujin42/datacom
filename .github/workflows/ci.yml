@@ -8,8 +8,6 @@ on:
 
 permissions:
   contents: read
-  # Requis par dependency-review-action pour lire le differentiel de la proposition de fusion.
-  pull-requests: read
 
 jobs:
   build-and-test:
@@ -37,29 +35,6 @@ jobs:
           name: jacoco-report
           path: target/site/jacoco/
 
-  # SEC-12 : analyse des vulnerabilites a chaque integration, bloquante sur « critique ».
-  #
-  # Deux analyses complementaires plutot qu'une :
-  #  - dependency-review compare les dependances ajoutees par la proposition de fusion et refuse
-  #    d'en introduire une vulnerable. Il ne s'execute que sur une pull request, puisqu'il raisonne
-  #    sur un differentiel.
-  #  - Trivy analyse l'image construite : il couvre aussi les paquets du systeme de base, qu'aucune
-  #    analyse des dependances Maven ne verrait, et s'execute sur chaque poussee.
-  #
-  # OWASP dependency-check a ete ecarte : il telecharge la base NVD entiere et exige desormais une
-  # cle d'API, ce qui rend la construction lente et dependante d'un service tiers.
-  dependency-review:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Review dependency changes
-        uses: actions/dependency-review-action@v4
-        with:
-          fail-on-severity: critical
-
   docker-build:
     runs-on: ubuntu-latest
     needs: build-and-test
@@ -70,8 +45,20 @@ jobs:
       - name: Build container image
         run: docker build -t datacom:ci .
 
+      # SEC-12 : analyse des vulnerabilites a chaque integration, bloquante sur « critique ».
+      #
+      # Analyser l'image plutot que le seul arbre de dependances Maven couvre les deux couches en
+      # une passe : Trivy inspecte les dependances Java embarquees dans le jar *et* les paquets du
+      # systeme de base, que la premiere approche ne verrait jamais.
+      #
+      # ignore-unfixed : une vulnerabilite sans correctif disponible ne peut pas etre corrigee en
+      # mettant a jour ; bloquer la construction dessus rendrait la CI rouge en permanence sans
+      # qu'aucune action ne soit possible.
+      #
+      # OWASP dependency-check a ete ecarte : il telecharge la base NVD entiere et exige desormais
+      # une cle d'API, ce qui rend la construction lente et dependante d'un service tiers.
       - name: Scan container image for vulnerabilities
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: datacom:ci
           format: table
