@@ -1,21 +1,12 @@
 <!DOCTYPE html>
 <html lang="fr" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8"/>
-    <title>Accueil — DataCom</title>
-    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+    <th:block th:replace="~{fragments/layout :: pageHead('Accueil')}"></th:block>
 </head>
 <body>
-<header class="app-header">
-    <img th:src="@{/img/datacom.webp}" alt="DataCom"/>
-    <!-- US-18 CA-1 : identite et role. -->
-    <span th:text="${firstname} + ' ' + ${lastname} + ' — ' + ${roleLabel}">Utilisateur</span>
-    <form method="post" th:action="@{/logout}" style="margin-left:auto">
-        <button type="submit">Se déconnecter</button>
-    </form>
-</header>
+<header th:replace="~{fragments/layout :: pageHeader}"></header>
 
-<main>
+<main id="contenu">
     <h1>Bienvenue, <span th:text="${firstname}">Prénom</span></h1>
 
     <!-- US-18 CA-2 : les actions pertinentes pour ce role, et leur decompte. -->

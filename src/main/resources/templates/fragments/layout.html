@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<!--
+  Elements communs a tous les ecrans. Les huit gabarits repetaient le meme en-tete : une correction
+  d'accessibilite ou d'ecoconception devait donc y etre appliquee huit fois, avec le risque d'en
+  oublier une. ECO-09 demande de mutualiser ; c'est aussi ce qui rend les regles ERG verifiables
+  une fois pour toutes plutot qu'ecran par ecran.
+-->
+<head>
+    <!--/* US-18 CA-3 (corrige B9) : chaque page passe son propre titre, aucune ne garde celui
+           d'une autre. */-->
+    <th:block th:fragment="pageHead(pageTitle)">
+        <meta charset="UTF-8"/>
+        <!--/* ERG-06 : utilisable de 320 px a 1920 px. */-->
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        <title th:text="${pageTitle} + ' — DataCom'">DataCom</title>
+        <link rel="stylesheet" th:href="@{/css/app.css}"/>
+    </th:block>
+</head>
+<body>
+
+<header th:fragment="pageHeader" class="app-header">
+    <!--/* ERG-02 : premier element focalisable de la page, il permet d'atteindre le contenu sans
+           parcourir toute la navigation au clavier. Visible uniquement au focus. */-->
+    <a class="skip-link" href="#contenu">Aller au contenu principal</a>
+
+    <!--/* ECO-06 : WebP servi en priorite, PNG en repli reel pour les navigateurs qui ne le
+           gerent pas — le repli etait livre mais inatteignable avant ce lot. ECO-05 : dimensions
+           declarees, image affichee a sa taille naturelle. */-->
+    <picture>
+        <source th:srcset="@{/img/datacom.webp}" type="image/webp"/>
+        <img th:src="@{/img/datacom.png}" alt="DataCom" width="120" height="32"/>
+    </picture>
+
+    <a th:href="@{/}">Accueil</a>
+
+    <!--/* La deconnexion est desormais atteignable depuis chaque ecran, et non de la seule page
+           d'accueil. Elle reste un POST protege par CSRF (SEC-04, corrige ELEV-2). */-->
+    <th:block th:if="${currentUser}">
+        <span class="current-user" th:text="${currentUser}">Utilisateur</span>
+        <form method="post" th:action="@{/logout}">
+            <button type="submit">Se déconnecter</button>
+        </form>
+    </th:block>
+</header>
+
+</body>
+</html>

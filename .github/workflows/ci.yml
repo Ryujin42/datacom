@@ -44,3 +44,24 @@ jobs:
 
       - name: Build container image
         run: docker build -t datacom:ci .
+
+      # SEC-12 : analyse des vulnerabilites a chaque integration, bloquante sur « critique ».
+      #
+      # Analyser l'image plutot que le seul arbre de dependances Maven couvre les deux couches en
+      # une passe : Trivy inspecte les dependances Java embarquees dans le jar *et* les paquets du
+      # systeme de base, que la premiere approche ne verrait jamais.
+      #
+      # ignore-unfixed : une vulnerabilite sans correctif disponible ne peut pas etre corrigee en
+      # mettant a jour ; bloquer la construction dessus rendrait la CI rouge en permanence sans
+      # qu'aucune action ne soit possible.
+      #
+      # OWASP dependency-check a ete ecarte : il telecharge la base NVD entiere et exige desormais
+      # une cle d'API, ce qui rend la construction lente et dependante d'un service tiers.
+      - name: Scan container image for vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: datacom:ci
+          format: table
+          severity: CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
