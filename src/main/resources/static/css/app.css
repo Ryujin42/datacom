@@ -172,6 +172,23 @@ ol.steps li.current {
   cursor: pointer;
 }
 
+/* US-11 CA-2 : le motif d'un renvoi doit sauter aux yeux a la reouverture de la fiche. */
+.return-comment {
+  border-left: 4px solid var(--color-primary);
+  background: #f4f6fa;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.return-comment h2 {
+  font-size: 1rem;
+  margin: 0 0 0.35rem;
+}
+
+.return-comment p {
+  margin: 0;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
