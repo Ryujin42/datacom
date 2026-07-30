@@ -17,7 +17,9 @@ FROM eclipse-temurin:25-jre-alpine
 RUN addgroup -S datacom && adduser -S datacom -G datacom
 WORKDIR /app
 COPY --from=build /build/target/datacom.jar app.jar
-RUN chown datacom:datacom app.jar
+# Log4j2 (rolling file appender) ecrit dans logs/ relatif au WORKDIR : le dossier doit exister et
+# appartenir a l'utilisateur non-root, sinon il echoue silencieusement au demarrage (repli console).
+RUN mkdir logs && chown datacom:datacom app.jar logs
 USER datacom
 
 EXPOSE 8080

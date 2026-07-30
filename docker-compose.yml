@@ -31,6 +31,13 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    # Sans ce volume, les logs vivent dans la couche writable du conteneur et disparaissent a
+    # chaque recreation (build, redeploiement) — ce que fait justement `up --build`. La rotation
+    # a 30 jours de log4j2.properties (ECO-13) n'a de sens que si le fichier survit entre deux
+    # demarrages du conteneur.
+    volumes:
+      - datacom-app-logs:/app/logs
 
 volumes:
   datacom-db-data:
+  datacom-app-logs:
