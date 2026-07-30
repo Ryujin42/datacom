@@ -14,21 +14,32 @@ dépôt du séminaire, dossier `Datacom/` (`AUDIT.md`, `SPECIFICATIONS.md`).
 docker compose up --build
 ```
 
-L'application est servie sur <http://localhost:8080>.
+L'application est servie sur <http://localhost:8080>. Comptes de démonstration (profil `dev`,
+jamais chargés en production — voir `db/migration/dev`) :
 
-## État actuel du projet
+| Rôle | Identifiant | Mot de passe |
+|---|---|---|
+| Opérateur de saisie | `operator1` | `OperatorPass123!` |
+| Opérateur de saisie (second compte, pour tester la séparation par auteur) | `operator2` | `OperatorPass123!` |
+| Responsable conformité | `validator1` | `ValidatorPass123!` |
 
-Ce dépôt est construit **lot par lot** (voir `SPECIFICATIONS.md §11`). L'authentification,
-le workflow métier et les écrans arrivent progressivement ; l'état d'avancement :
+## État du projet
+
+Les six lots (voir `SPECIFICATIONS.md §11`) sont **terminés et mergés dans `main`**, chacun via
+une Pull Request réelle :
 
 - [x] **L0** — Socle technique : squelette Spring Boot, migrations Flyway, conteneurisation,
       intégration continue, pages d'erreur, journalisation, harnais de tests
-- [ ] L1 — Authentification & autorisation
-- [ ] L2 — Domaine & workflow
-- [ ] L3 — Saisie des fiches
-- [ ] L4 — Contrôle de conformité
-- [ ] L5 — Consultation & recherche
-- [ ] L6 — Écoconception & finalisation
+- [x] **L1** — Authentification & autorisation
+- [x] **L2** — Domaine & workflow
+- [x] **L3** — Saisie des fiches
+- [x] **L4** — Contrôle de conformité
+- [x] **L5** — Consultation & recherche
+- [x] **L6** — Écoconception & finalisation
+
+Suite de tests : 55 tests unitaires + 72 tests d'intégration (Testcontainers), tous verts,
+seuil de couverture JaCoCo atteint. Mesures écoconception avant/après (ECO-17) :
+[`docs/ECO-17-mesures.md`](docs/ECO-17-mesures.md).
 
 ## Développement local
 
