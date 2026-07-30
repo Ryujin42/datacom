@@ -9,10 +9,12 @@ import com.datacom.product.domain.StatusTransition;
 import com.datacom.product.infrastructure.ProductRepository;
 import java.time.Instant;
 import java.util.NoSuchElementException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 public class ProductWorkflowService {
 
@@ -79,5 +81,12 @@ public class ProductWorkflowService {
                         new StatusTransition(from, product.getStatus()),
                         comment,
                         Instant.now()));
+        log.info(
+                "product {} {} {} -> {} by user {}",
+                product.getId(),
+                action,
+                from,
+                product.getStatus(),
+                actingUserId);
     }
 }
