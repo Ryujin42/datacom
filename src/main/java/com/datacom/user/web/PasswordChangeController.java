@@ -27,7 +27,6 @@ public class PasswordChangeController {
         return "auth/password-change";
     }
 
-  
     @PostMapping("/password/change")
     public String submit(
             @AuthenticationPrincipal UserPrincipal principal,
