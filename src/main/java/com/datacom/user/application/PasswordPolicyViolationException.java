@@ -11,7 +11,6 @@ public class PasswordPolicyViolationException extends RuntimeException {
         this.violations = violations;
     }
 
-    /** Un message par critere non respecte, en francais, pret a afficher. */
     public List<String> getViolations() {
         return violations;
     }

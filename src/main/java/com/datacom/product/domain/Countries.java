@@ -25,6 +25,5 @@ public final class Countries {
                 .toList();
     }
 
-    /** Un code ISO et son libelle affichable. */
     public record Country(String code, String label) {}
 }

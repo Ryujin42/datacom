@@ -7,7 +7,6 @@ public final class SearchTerm {
 
     private SearchTerm() {}
 
-    /** Le motif a passer a la requete, deja encadre de {@code %}. */
     public static String toLikePattern(String rawTerm) {
         return "%" + escapeLikeWildcards(stripAccents(rawTerm)) + "%";
     }

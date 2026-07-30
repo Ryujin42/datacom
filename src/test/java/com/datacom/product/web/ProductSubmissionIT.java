@@ -29,7 +29,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/** US-08 : soumission au controle, et refus de tout contournement du workflow. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("dev")
 @Testcontainers
@@ -43,8 +42,6 @@ class ProductSubmissionIT {
 
     private MockMvc mockMvc;
 
-    // Cf. ProductControllerIT : springSecurity() est indispensable pour que le contexte pose par
-    // @WithUserDetails atteigne la requete.
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
@@ -68,7 +65,6 @@ class ProductSubmissionIT {
         return productRepository.findById(id).orElseThrow();
     }
 
-    /** US-08 CA-2/CA-5 : la fiche passe en IN_REVIEW et l'audit en garde la trace. */
     @Test
     @WithUserDetails("operator1")
     void submittingACompleteDraftMovesItToInReviewAndRecordsAnAuditEntry() throws Exception {
@@ -83,11 +79,6 @@ class ProductSubmissionIT {
                 .containsExactly(AuditAction.SUBMIT);
     }
 
-    /**
-     * US-08 CA-3, scenario « contournement du workflow par requete forgee » : une fiche incomplete
-     * soumise directement par requete, sans passer par l'ecran qui masque le bouton, est refusee et
-     * reste en DRAFT.
-     */
     @Test
     @WithUserDetails("operator1")
     void aForgedSubmissionOfAnIncompleteFicheIsRefusedAndLeavesItInDraft() throws Exception {
@@ -101,7 +92,6 @@ class ProductSubmissionIT {
         assertThat(auditEntryRepository.findByProductIdOrderByOccurredAtDesc(id)).isEmpty();
     }
 
-    /** US-08 CA-4 : un operateur qui n'est pas l'auteur ne soumet pas la fiche d'un autre. */
     @Test
     @WithUserDetails("operator2")
     void anOperatorWhoIsNotTheAuthorCannotSubmitTheFiche() throws Exception {
@@ -113,7 +103,6 @@ class ProductSubmissionIT {
         assertThat(reload(id).getStatus()).isEqualTo(ProductStatus.DRAFT);
     }
 
-    /** RG-01 : un operateur ne consulte pas non plus le brouillon d'un autre. */
     @Test
     @WithUserDetails("operator2")
     void anOperatorCannotOpenTheDraftOfAnotherAuthor() throws Exception {
@@ -122,7 +111,6 @@ class ProductSubmissionIT {
         mockMvc.perform(get("/fiches/" + id + "/etape/1")).andExpect(status().isForbidden());
     }
 
-    /** US-06 CA-7/RG-05 : une fiche soumise n'est plus modifiable, meme par son auteur. */
     @Test
     @WithUserDetails("operator1")
     void aFicheInReviewCanNoLongerBeEdited() throws Exception {
@@ -142,7 +130,6 @@ class ProductSubmissionIT {
         assertThat(reload(id).getReference()).isEqualTo("REF-954");
     }
 
-    /** SEC-04 : aucune ecriture sans jeton CSRF. */
     @Test
     @WithUserDetails("operator1")
     void submittingWithoutCsrfTokenIsRejected() throws Exception {

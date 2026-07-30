@@ -9,7 +9,6 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-/** Adapte {@link User} au contrat Spring Security ; le domaine ne connait pas UserDetails. */
 public class UserPrincipal implements UserDetails {
 
     private final User user;

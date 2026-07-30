@@ -15,7 +15,7 @@ class CountriesTest {
     @Test
     void rejectsAnythingOutsideTheList() {
         assertThat(Countries.isValid("ZZ")).isFalse();
-        assertThat(Countries.isValid("fr")).isFalse(); // la casse fait partie de la norme
+        assertThat(Countries.isValid("fr")).isFalse();
         assertThat(Countries.isValid("FRA")).isFalse();
         assertThat(Countries.isValid("")).isFalse();
         assertThat(Countries.isValid(null)).isFalse();

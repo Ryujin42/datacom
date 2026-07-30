@@ -72,7 +72,6 @@ public class ProductCatalogService {
         return new HomeCounts(myDrafts, awaitingReview);
     }
 
-    /** Decomptes affiches sur l'accueil : fiches en cours, fiches a controler. */
     public record HomeCounts(long myDrafts, long awaitingReview) {}
 
     public record ProductScope(Long userId, Role role) {

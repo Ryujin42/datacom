@@ -6,7 +6,6 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Adapte {@link UserRepository} au contrat Spring Security attendu par l'authentification. */
 @Service
 public class DatacomUserDetailsService implements UserDetailsService {
 

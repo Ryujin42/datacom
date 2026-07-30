@@ -25,10 +25,6 @@ public class PasswordPolicy {
         this.commonPasswords = loadCommonPasswords();
     }
 
-    /**
-     * Retourne les violations en francais ; une liste vide signifie que le mot de passe est
-     * accepte.
-     */
     public List<String> validate(String candidate) {
         List<String> violations = new ArrayList<>();
         if (candidate == null || candidate.length() < MIN_LENGTH) {

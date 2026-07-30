@@ -27,10 +27,7 @@ public class PasswordChangeController {
         return "auth/password-change";
     }
 
-    /**
-     * Delegue la validation a {@link PasswordChangeService} ; reaffiche le formulaire dans tous les
-     * cas.
-     */
+  
     @PostMapping("/password/change")
     public String submit(
             @AuthenticationPrincipal UserPrincipal principal,

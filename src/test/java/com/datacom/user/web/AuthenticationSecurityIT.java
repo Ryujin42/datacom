@@ -58,7 +58,6 @@ class AuthenticationSecurityIT {
         mockMvc.perform(post("/logout")).andExpect(status().isForbidden());
     }
 
-    /** Toute page protegee redirige vers la connexion pour un visiteur anonyme. */
     @Test
     void unauthenticatedRequestToAProtectedPageRedirectsToLogin() throws Exception {
         mockMvc.perform(get("/"))
