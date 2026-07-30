@@ -1,7 +1,7 @@
 # ---- Build stage ------------------------------------------------------
 # Dependencies are resolved in their own layer, before the sources are copied,
 # so that editing a .java file never invalidates the Maven dependency cache (ECO-15).
-FROM maven:3.9-eclipse-temurin-25 AS build
+FROM maven:3-eclipse-temurin-26 AS build
 WORKDIR /build
 
 COPY pom.xml .
