@@ -7,10 +7,12 @@ import com.datacom.product.domain.Product;
 import com.datacom.product.infrastructure.ProductRepository;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @PreAuthorize("hasRole('OPERATOR')")
 public class ProductEditService {
@@ -35,7 +37,9 @@ public class ProductEditService {
 
     @Transactional
     public Long create(Long authorId) {
-        return productRepository.save(new Product(authorId)).getId();
+        Long productId = productRepository.save(new Product(authorId)).getId();
+        log.info("product {} created by user {}", productId, authorId);
+        return productId;
     }
 
     @Transactional(readOnly = true)
@@ -66,6 +70,12 @@ public class ProductEditService {
                 .filter(existing -> !existing.getId().equals(productId))
                 .ifPresent(
                         existing -> {
+                            log.warn(
+                                    "reference {} rejected for product {}: already used by"
+                                            + " product {}",
+                                    reference,
+                                    productId,
+                                    existing.getId());
                             throw new DuplicateReferenceException(reference, existing.getId());
                         });
     }
@@ -105,6 +115,11 @@ public class ProductEditService {
         Product product = getProductOrThrow(productId);
         product.ensureAuthoredBy(actingUserId);
         if (product.getVersion() != expectedVersion) {
+            log.warn(
+                    "concurrent modification on product {}: expected version {}, found {}",
+                    productId,
+                    expectedVersion,
+                    product.getVersion());
             throw new ProductModifiedConcurrentlyException();
         }
         return product;

@@ -1,16 +1,14 @@
-# Dossier Technique — DataCom
+# Dossier Technique, DataCom
 
 ### Réécriture et sécurisation d'une application monolithique
 
 **Séminaire :** Réécriture & sécurisation d'une application monolithique
 **Auteurs :** Sam LECLERCQ · Hector ROUSSEL
 **Dépôt :** [github.com/Ryujin42/datacom](https://github.com/Ryujin42/datacom)
-**Date :** 30/07/2026 · **Version du logiciel :** 0.1.0-SNAPSHOT — six lots (L0→L6) mergés dans `main`
+**Date :** 30/07/2026 · **Version du logiciel :** 0.1.0-SNAPSHOT, sept lots (L0→L6) mergés dans `main`
 **Livrables du séminaire :** ce dossier technique · le code applicatif et son dépôt Git · une présentation orale
 
 ---
-
-> **Note de lecture.** Ce document ne cherche pas à décrire *ce qui a été fait* mais à **justifier pourquoi**, à chaque étape, un choix a été préféré à ses alternatives. Chaque affirmation s'appuie sur une preuve vérifiable dans le dépôt : un identifiant de règle (`RG-xx`, `SEC-xx`, `ECO-xx`, `TEC-xx`), un fichier, un test, ou un chiffre mesuré — jamais une formulation générique. L'audit du legacy (`Analyse/AUDIT.md`), les spécifications de la refonte (`Datacom/SPECIFICATIONS.md` v2.2) et l'historique Git réel du dépôt `datacom-refonte` en sont les sources primaires.
 
 ## Table des matières
 
@@ -31,36 +29,83 @@
 
 ### 1.1 Le produit
 
-DataCom est l'outil interne par lequel une organisation **enregistre les fiches de ses produits, en contrôle la conformité, puis autorise leur mise en circulation sur le marché**. La fiche produit est le dossier de référence ; l'acte de validation engage l'organisation vis-à-vis de la réglementation. Deux populations l'utilisent, dont la séparation des responsabilités est la raison d'être du logiciel :
+DataCom est l'outil interne par lequel une organisation **enregistre les fiches de ses produits, en contrôle la conformité, puis autorise leur mise en circulation sur le marché**. La fiche produit est le dossier de référence ; l'acte de validation engage l'organisation vis-à-vis de la réglementation. La séparation des responsabilités est la raison d'être du logiciel :
 
-- l'**opérateur de saisie**, qui constitue les dossiers en quatre étapes (identification, classification, traçabilité, récapitulatif) ;
-- le **responsable conformité**, qui contrôle les fiches soumises, les valide ou les renvoie en correction.
+- l'**opérateur de saisie** constitue les dossiers en quatre étapes (identification, classification, traçabilité, récapitulatif) ;
+- le **responsable conformité** contrôle les fiches soumises, les valide ou les renvoie en correction.
 
-Que cette séparation soit **garantie par le système et non par la discipline des utilisateurs** est l'exigence centrale du projet (`SPECIFICATIONS.md` §2.1) — et, comme le montre le §2, c'est précisément ce que le logiciel existant ne fait pas.
+Que cette séparation soit **garantie par le système et non par la discipline des utilisateurs** est l'exigence centrale du projet (`SPECIFICATIONS.md` §2.1), et, comme le montre le §2, c'est précisément ce que le logiciel existant ne fait pas.
 
 ### 1.2 Le problème métier hérité
 
-L'application legacy (servlets/JSP, Java 11, ~2 500 lignes, `SeminaireDatacom/Datacom/`) est fonctionnelle dans ses grandes lignes mais **n'assure aucune des garanties pour lesquelles elle existe** : n'importe quel utilisateur authentifié peut valider n'importe quelle fiche, y compris la sienne. Le §2 en détaille les causes précises.
+L'application legacy (servlets/JSP, Java 11, ~2 500 lignes est fonctionnelle dans ses grandes lignes mais **n'assure aucune des garanties pour lesquelles elle existe** : n'importe quel utilisateur authentifié peut valider n'importe quelle fiche, y compris la sienne. Le §2 en détaille les causes précises.
 
 ### 1.3 Démarche
 
-Le projet suit la démarche imposée par le séminaire : **audit** du code existant (dette technique, vulnérabilités, defects fonctionnels), **spécification** de la refonte arbitrant les choix ambigus (`SPECIFICATIONS.md` §0), **découpage en lots** livrables et démontrables (§11), puis **exécution** lot par lot avec preuve automatisée à chaque étape (tests, CI, mesures). Les sections suivantes suivent cet ordre et citent, pour chaque affirmation, sa source dans le dépôt.
+Le projet suit la démarche imposée par le séminaire : **audit** du code legacy (dette technique, vulnérabilités, defects fonctionnels), **spécification** de la refonte arbitrant les choix ambigus (`SPECIFICATIONS.md` §0), **découpage en lots** livrables et démontrables (§11), puis **exécution** lot par lot avec preuve automatisée à chaque étape (tests, CI, mesures). Les sections suivantes suivent cet ordre et citent, pour chaque affirmation, sa source dans le dépôt.
 
 ---
 
 ## 2. Audit de l'existant
 
-*Synthèse argumentée de `Analyse/AUDIT.md` — le document complet (696 lignes) reste la référence pour le détail ligne par ligne.*
+État des lieux des problèmes et limites connues
 
-### 2.1 Verdict et trois constats structurants
+**Échelle de risque (1 = mineur, 5 = critique)**
+
+| Indice | Signification |
+|---|---|
+| 5 | Critique — compromission totale possible (données, authentification) |
+| 4 | Élevé — faille exploitable avec impact significatif |
+| 3 | Modéré — impact réel mais conditions d'exploitation plus limitées, ou risque structurel important |
+| 2 | Faible — dette technique ou fonctionnelle avec impact limité |
+| 1 | Mineur — cosmétique ou sans impact direct sur la sécurité/le fonctionnement |
+
+### 2.1 Sécurité
+
+| # | Problème / Faille | Localisation | Risque (1-5) | Solution identifiée (non appliquée) |
+|---|---|---|---|---|
+| 1 | Requêtes SQL construites par concaténation de chaînes | `LoginServlet.java`, `ProductServlet.java` (list, new, edit, save, validate) | **5** | Remplacer tous les `Statement` par des `PreparedStatement` avec liaison de paramètres (`?`) |
+| 2 | Mots de passe stockés et comparés en clair | Table `users`, `LoginServlet.java` | **5** | Hachage avec sel (bcrypt ou argon2) à la création et à la vérification du compte |
+| 3 | Rôle utilisateur (VALIDATOR/USER) non vérifié dans le code | Toutes les Servlets | **4** | Contrôle explicite du rôle avant les actions sensibles (ex. `validate` réservé à VALIDATOR) |
+| 4 | Échappement HTML absent sur les champs affichés (`description`, `validation`, `name`, etc.) | `product.jsp` | **4** | Échapper systématiquement les sorties (`<c:out>`, ou fonction d'échappement HTML) avant affichage |
+| 5 | Comptes de démonstration à mots de passe triviaux | `database/file.sql` (admin/admin, validator/validator, test/test) | **4** | Supprimer ces comptes ou forcer un changement de mot de passe au premier lancement en environnement réel |
+| 6 | Identifiants de base de données codés en dur | `Database.java`, `docker-compose.yml` | **3** | Externaliser via variables d'environnement ou un gestionnaire de secrets |
+| 7 | Absence de protection CSRF | Formulaires POST : `login`, `product?action=save`, `product?action=validate` | **3** | Jeton CSRF unique par session/formulaire, vérifié côté serveur |
+| 8 | Paramètre `id` non validé avant usage en base | `ProductServlet.java` (action=edit) | **3** | Valider/convertir l'`id` en entier avant toute requête, avec gestion d'erreur propre |
+| 9 | Aucune configuration de sécurité dans `web.xml` (pas de filtre d'authentification centralisé, pas de contrainte HTTPS, pas de pages d'erreur) | `WEB-INF/web.xml` | **3** | Ajouter un `Filter` d'authentification global et des `error-page` dédiées |
+| 10 | Bloc « Debug information » visible en page produit (mode, statut, id, objet session complet) | `product.jsp` (bas de page) | **2** | Supprimer ce bloc ou le conditionner à un mode développement explicite |
+
+### 2.2 Qualité et maintenabilité du code
+
+| # | Problème | Localisation | Risque (1-5) | Solution identifiée (non appliquée) |
+|---|---|---|---|---|
+| 11 | Nouvelle connexion JDBC ouverte à chaque requête, sans pool de connexions | `Database.java` | **3** | Utiliser un pool de connexions (HikariCP, DBCP) |
+| 12 | Logique SQL directement mêlée à la logique de contrôle, aucune couche DAO/Repository | Toutes les Servlets | **2** | Introduire une couche DAO isolant les accès JDBC |
+| 13 | Dates stockées en `VARCHAR` plutôt qu'en `DATE`/`TIMESTAMP` | Table `products` (`createdat`, `updatedat`) | **2** | Migrer les colonnes vers un type temporel natif |
+| 14 | Journalisation via `System.out.println` uniquement | Toutes les Servlets | **2** | Introduire un framework de logs (SLF4J + Logback) |
+| 15 | Aucun test automatisé (unitaire ou intégration) | Projet entier | **2** | Ajouter une suite de tests (JUnit + Mockito, ou Testcontainers) |
+| 16 | Deux classes de modèle utilisateur quasi identiques (`User` et `UserCopy`) | `model/User.java`, `model/UserCopy.java` | **1** | Unifier en une seule classe `User` |
+| 17 | Code mort commenté conservé dans le fichier (ancienne version de `doPost`) | `LoginServlet.java` (bloc « NE PAS SUPPRIMER ») | **1** | Supprimer le code mort (l'historique Git suffit à le retrouver) |
+| 18 | Fichier JavaScript vide | `app.js` | **1** | Implémenter la validation côté client si besoin, ou supprimer le fichier |
+
+### 2.3 Fonctionnel
+
+| # | Problème | Localisation | Risque (1-5) | Solution identifiée (non appliquée) |
+|---|---|---|---|---|
+| 19 | Aucun mécanisme de retour arrière depuis le statut `VALIDATED` | `ProductServlet.java` | **2** | Ajouter une action de dévalidation/réouverture, réservée à un rôle habilité |
+| 20 | Aucun historique des modifications d'une fiche produit | Toutes les tables | **2** | Ajouter une table d'audit ou un mécanisme de versionning des fiches |
+| 21 | Champ `conformity` présent en base mais absent du formulaire | Table `products` / `product.jsp` | **1** | Ajouter le champ à l'étape appropriée du formulaire ou retirer la colonne |
+| 22 | Interface non responsive | Toutes les JSP | **1** | Adapter le CSS (media queries) ou migrer vers un framework CSS responsive |
+
+### 2.4 Synthèse
 
 L'audit conclut : **l'application est fonctionnellement incomplète et n'est pas déployable en production en l'état** (`AUDIT.md` §1). Trois constats en découlent, par ordre d'impact :
 
-1. **La sécurité est absente, pas seulement faible.** Injection SQL sur 100 % des requêtes, mots de passe en clair, et surtout **aucun contrôle d'autorisation** — la règle métier que l'application existe pour faire respecter n'est nulle part implémentée dans le code.
+1. **La sécurité est absente.** Injection SQL sur 100 % des requêtes, mots de passe en clair, et surtout **aucun contrôle d'autorisation** : la règle métier que l'application est sensée faire respecter n'est nulle part implémentée dans le code.
 2. **Il n'y a pas d'architecture.** Aucune couche service ni d'accès aux données : le SQL est concaténé dans les servlets, un `ResultSet` JDBC ouvert est transmis à la JSP qui l'itère elle-même, la logique de workflow est répartie entre servlet et 1 026 lignes de scriptlets. Aucun test.
-3. **La dette est concentrée et le volume est faible.** ~800 lignes de Java, ~1 350 de JSP. Une réécriture complète est plus rapide et moins risquée qu'une remise à niveau incrémentale — argument développé au §3.
+3. **La dette est concentrée et le volume est faible.** ~800 lignes de Java, ~1 350 de JSP. Une réécriture complète est plus rapide et moins risquée qu'une remise à niveau incrémentale, argument développé au §3.
 
-### 2.2 Vulnérabilités — vue d'ensemble
+### 2.2 Vulnérabilités, vue d'ensemble
 
 | Gravité | Nombre | Exemples |
 |---|---:|---|
@@ -69,13 +114,13 @@ L'audit conclut : **l'application est fonctionnellement incomplète et n'est pas
 | **Moyenne** | 8 | Fuite d'informations, secrets en dur, absence d'audit, pas d'en-têtes de sécurité |
 | **Faible** | 5 | Absence de HTTPS, cookies non durcis, pas d'anti-bruteforce |
 
-**La vulnérabilité la plus grave n'est pas l'injection SQL** — même si `admin' --` en identifiant contourne effectivement l'authentification (`AUDIT.md` CRIT-1, vérifié par relecture directe du code). C'est **CRIT-3, l'absence totale de contrôle d'autorisation** : le champ `role` est lu en base puis **jamais réutilisé nulle part** dans les servlets. Un compte de rôle `USER` peut valider n'importe quelle fiche via `ProductServlet.java:487-527`. L'injection SQL se corrige mécaniquement ; l'absence de RBAC signifie que l'application ne remplit pas la fonction pour laquelle elle a été commandée. C'est le point d'audit qui a le plus directement dicté la priorisation de la refonte (voir §3 et §5).
+**La vulnérabilité la plus grave n'est pas l'injection SQL** : même si `admin' --` en identifiant contourne effectivement l'authentification (`AUDIT.md` CRIT-1, vérifié par relecture directe du code). C'est **CRIT-3, l'absence totale de contrôle d'autorisation** : le champ `role` est lu en base puis **jamais réutilisé nulle part** dans les servlets. Un compte de rôle `USER` peut valider n'importe quelle fiche via `ProductServlet.java:487-527`. L'injection SQL se corrige mécaniquement ; l'absence de RBAC signifie que l'application ne remplit pas la fonction pour laquelle elle a été commandée. C'est le point d'audit qui a le plus directement dicté la priorisation de la refonte (voir §3 et §5).
 
 ### 2.3 Dette technique et défauts de conception
 
 | Constat | Preuve dans `AUDIT.md` |
 |---|---|
-| Absence de couches | Un `ResultSet` JDBC ouvert est placé en attribut de requête et transmis à la JSP, qui l'itère elle-même (§3.1) — la vue dépend directement du schéma physique |
+| Absence de couches | Un `ResultSet` JDBC ouvert est placé en attribut de requête et transmis à la JSP, qui l'itère elle-même (§3.1), la vue dépend directement du schéma physique |
 | Fuites de ressources JDBC | Aucun `try-with-resources`, aucune connexion mutualisée (une connexion physique par requête HTTP), `Database.getConnection()` avale l'exception et retourne `null` (§3.2) |
 | Anomalies fonctionnelles | 9 anomalies numérotées B1→B9, dont une situation de compétition sur `SELECT MAX(id)` après `INSERT` (B2) et une navigation arrière structurellement impossible à cause d'un formulaire imbriqué (B3/B4) |
 | Modèle de données | Aucune contrainte hormis les clés primaires : pas de `NOT NULL`, pas de clé étrangère, pas d'index hors PK, dates typées `VARCHAR(255)`, aucun outil de migration (§3.4) |
@@ -83,7 +128,7 @@ L'audit conclut : **l'application est fonctionnellement incomplète et n'est pas
 
 ### 2.4 Ce qui est sain et mérite d'être conservé
 
-L'audit est délibérément équilibré (`AUDIT.md` §3.6) : le **découpage fonctionnel du domaine** (workflow en quatre étapes, séparation création/validation) est pertinent, le **modèle relationnel** est exploitable moyennant typage et contraintes, le principe de **conteneurisation** est le bon. Ce constat conditionne directement la stratégie retenue au §3 : ce qui est repris du legacy, c'est la connaissance du domaine — pas le code.
+Le **découpage fonctionnel du domaine** (workflow en quatre étapes, séparation création/validation) est pertinent, le **modèle relationnel** est exploitable moyennant typage et contraintes, le principe de **conteneurisation** est le bon. Ce constat conditionne directement la stratégie retenue au `AUDIT.md` §3 : ce qui est repris du legacy, c'est la connaissance du domaine, pas le code.
 
 ---
 
@@ -97,13 +142,13 @@ La refonte de DataCom est une **réécriture intégrale**, sans reprise d'aucune
 
 | Stratégie | Pourquoi écartée pour ce projet précis |
 |---|---|
-| **Remise à niveau incrémentale** (patcher le code existant) | Chaque couche est à refaire : le SQL est vulnérable dans sa totalité (CRIT-1), les vues ne sont pas échappées (ELEV-1), le contrôle d'accès n'existe pas (CRIT-3). Corriger sans filet de tests — le legacy n'en a aucun — coûterait plus cher que réécrire et laisserait la conception (absence de couches, `ResultSet` transmis à la vue) intacte. |
-| **Strangler fig** (façade progressive routant vers l'ancien puis le nouveau système) | Pattern justifié pour des systèmes volumineux qu'on ne peut arrêter ni réécrire d'un bloc. Ici, le volume (~2 500 lignes, `AUDIT.md` §1) rend la coexistence de deux systèmes — façade de routage, synchronisation de données, double maintenance temporaire — plus coûteuse que la réécriture elle-même, pour un gain de risque marginal : il n'y a pas d'utilisateurs en production à ne pas interrompre. |
+| **Remise à niveau incrémentale** (patcher le code existant) | Chaque couche est à refaire : le SQL est vulnérable dans sa totalité (CRIT-1), les vues ne sont pas échappées (ELEV-1), le contrôle d'accès n'existe pas (CRIT-3). Corriger sans filet de tests (le legacy n'en a aucun) coûterait plus cher que réécrire et laisserait la conception (absence de couches, `ResultSet` transmis à la vue) intacte. |
+| **Strangler fig** (façade progressive routant vers l'ancien puis le nouveau système) | Pattern justifié pour des systèmes volumineux qu'on ne peut arrêter ni réécrire d'un bloc. Ici, le volume (~2 500 lignes, `AUDIT.md` §1) rend la coexistence de deux systèmes, façade de routage, synchronisation de données, double maintenance temporaire (plus coûteuse que la réécriture elle-même) pour un gain de risque marginal : il n'y a pas d'utilisateurs en production à ne pas interrompre. |
 | **Réécriture complète** (retenue) | Le volume est faible, le domaine est simple et déjà bien compris (§2.4), et la découpe en lots démontrables (§11 de la spécification) permet de livrer une preuve de fonctionnement à chaque étape sans jamais faire cohabiter deux implémentations. |
 
 ### 3.3 Le socle technique (décision D1)
 
-`SPECIFICATIONS.md` §0 arbitre le socle : **Java 25 (LTS) + Spring Boot (dernière version stable compatible) + PostgreSQL 17**. Ce choix répond directement aux vulnérabilités critiques de l'audit — Spring Security pour l'authentification et le RBAC (CRIT-3), Spring Data JPA pour le paramétrage systématique des requêtes (CRIT-1), Thymeleaf pour l'échappement automatique (ELEV-1), Bean Validation pour les entrées (CRIT-5) — sans qu'aucune de ces protections ne soit réimplémentée à la main, contrairement à la voie alternative envisagée dans l'audit (rester en servlets/Java 11 nécessiterait de reconstruire à la main `PreparedStatement`, un filtre d'autorisation, HikariCP, JSTL, bcrypt, un jeton CSRF — environ trois fois plus de code à écrire et à tester, `AUDIT.md` §4.1).
+`SPECIFICATIONS.md` §0 arbitre le socle : **Java 25 (LTS) + Spring Boot (dernière version stable compatible) + PostgreSQL 17**. Ce choix répond directement aux vulnérabilités critiques de l'audit, Spring Security pour l'authentification et le RBAC (CRIT-3), Spring Data JPA pour le paramétrage systématique des requêtes (CRIT-1), Thymeleaf pour l'échappement automatique (ELEV-1), Bean Validation pour les entrées (CRIT-5), sans qu'aucune de ces protections ne soit réimplémentée à la main, contrairement à la voie alternative envisagée dans l'audit (rester en servlets/Java 11 nécessiterait de reconstruire à la main `PreparedStatement`, un filtre d'autorisation, HikariCP, JSTL, bcrypt, un jeton CSRF, environ trois fois plus de code à écrire et à tester, `AUDIT.md` §4.1).
 
 ### 3.4 Découpage en lots démontrables
 
@@ -119,7 +164,7 @@ La réécriture est séquencée en sept lots (`SPECIFICATIONS.md` §11), chacun 
 | **L5** | Consultation & recherche | ECO-03/11/12 |
 | **L6** | Écoconception & finalisation | ECO-01→17, SEC-12/13 |
 
-**Principe directeur du découpage : la sécurité vient avant les fonctionnalités** (`SPECIFICATIONS.md` §11) — L1 (auth/autorisation) précède le domaine métier lui-même, à l'inverse du legacy où l'autorisation n'a jamais été traitée du tout.
+**Principe directeur du découpage : la sécurité vient avant les fonctionnalités** (`SPECIFICATIONS.md` §11), L1 (auth/autorisation) précède le domaine métier lui-même, à l'inverse du legacy où l'autorisation n'a jamais été traitée du tout.
 
 ---
 
@@ -146,9 +191,9 @@ flowchart TB
     D -.persiste.-> C
 ```
 
-**Règle de dépendance (TEC-01) :** les flèches vont toujours vers le domaine. Le domaine ne connaît ni la base ni le web. Un contrôleur n'appelle jamais un repository directement (TEC-03) — c'est la correction directe du `ResultSet` transmis à la JSP du legacy (`AUDIT.md` §3.1).
+**Règle de dépendance (TEC-01) :** les flèches vont toujours vers le domaine. Le domaine ne connaît ni la base ni le web. Un contrôleur n'appelle jamais un repository directement (TEC-03), c'est la correction directe du `ResultSet` transmis à la JSP du legacy (`AUDIT.md` §3.1).
 
-### 4.2 Le garde-fou n'est pas une convention, c'est un test
+### 4.2 Séparation des dépendances
 
 La différence avec un simple découpage de dossiers : la règle de dépendance est **vérifiée mécaniquement à chaque build** par [`ArchitectureTest.java`](../src/test/java/com/datacom/ArchitectureTest.java) (ArchUnit), pas laissée à la discipline ou à une revue de code qui arrive trop tard :
 
@@ -170,7 +215,7 @@ La preuve tient aussi dans les imports réels du code (module `product`) :
 
 | Couche | Imports observés |
 |---|---|
-| `product/domain/*.java` | `jakarta.persistence.*` (métadonnées déclaratives, tolérées — voir commentaire du test) et `java.*` uniquement. **Aucun** `org.springframework`. |
+| `product/domain/*.java` | `jakarta.persistence.*` (métadonnées déclaratives, tolérées, voir commentaire du test) et `java.*` uniquement. **Aucun** `org.springframework`. |
 | `product/application/*.java` | Spring (`@Service`, `@Transactional`, `@PreAuthorize`), les `Repository` d'`infrastructure/`. **Aucun** import de `..web..`. |
 
 ### 4.3 Découpage par domaine fonctionnel puis par couche (TEC-02)
@@ -184,7 +229,7 @@ src/main/java/com/datacom/
 └── config/       (SecurityConfig, WebConfig)
 ```
 
-Le choix — domaine d'abord, couche ensuite — plutôt que l'inverse (`web/`, `service/`, `repository/` à la racine) garde le code lisible à mesure que l'application grossit et prépare une extraction de module si le besoin se présente (`AUDIT.md` §4.3).
+Le choix, domaine d'abord, couche ensuite, plutôt que l'inverse (`web/`, `service/`, `repository/` à la racine) garde le code lisible à mesure que l'application grossit et prépare une extraction de module si le besoin se présente (`AUDIT.md` §4.3).
 
 ### 4.4 Le domaine porte les règles, pas les contrôleurs (TEC-04)
 
@@ -200,11 +245,9 @@ Le choix — domaine d'abord, couche ensuite — plutôt que l'inverse (`web/`, 
 public interface ProductRepository extends Repository<Product, Long> {
     Product save(Product product);
     Optional<Product> findById(Long id);
-    // ... aucune méthode delete n'existe — pas "non appelée", structurellement absente
+    // ... aucune méthode delete n'existe, pas "non appelée", structurellement absente
 }
 ```
-
-Ce n'est pas une règle qu'un développeur doit se souvenir de respecter : **il n'existe littéralement pas de méthode à appeler** pour supprimer une fiche. C'est le même principe que l'ArchitectureTest — remplacer une discipline par une impossibilité structurelle.
 
 ### 4.5 Exemple de séparation des responsabilités : la file de contrôle (US-09)
 
@@ -218,13 +261,13 @@ public String list(@RequestParam(required = false) ProductStatus statut, /* ... 
 }
 ```
 
-Le contrôleur ignore tout de la portée métier — c'est `ProductCatalogService.ProductScope` (couche `application`) qui décide si l'appelant voit ses propres fiches ou toutes les fiches, en fonction du rôle porté par la session (RG-01, corrige ELEV-4). Le contrôleur ne fait que renvoyer le nom logique de la vue (`"product/list"`) ; c'est Spring Boot, via le `ThymeleafViewResolver` auto-configuré, qui résout ce nom vers `templates/product/list.html` et y injecte le `Model`.
+Le contrôleur ignore tout de la portée métier, c'est `ProductCatalogService.ProductScope` (couche `application`) qui décide si l'appelant voit ses propres fiches ou toutes les fiches, en fonction du rôle porté par la session (RG-01, corrige ELEV-4). Le contrôleur ne fait que renvoyer le nom logique de la vue (`"product/list"`) ; c'est Spring Boot, via le `ThymeleafViewResolver` auto-configuré, qui résout ce nom vers `templates/product/list.html` et y injecte le `Model`.
 
 ### 4.6 Décision D5 : `VARCHAR` + `CHECK`, jamais d'`ENUM` natif PostgreSQL
 
 Décision prise en L2, amendant la spécification initiale (`SPECIFICATIONS.md` §0, D5) :
 
-> Un `ENUM` natif n'est mappable qu'avec une annotation propriétaire du framework de persistance portée par l'entité, ce qui ferait dépendre le **domaine** d'Hibernate — en violation directe de TEC-01, et mécaniquement détecté par `ArchitectureTest` si quelqu'un l'introduisait. Son évolution est en outre coûteuse : `ALTER TYPE ... ADD VALUE` ne s'exécute pas dans une transaction, donc pas dans une migration Flyway transactionnelle, là où une contrainte `CHECK` se modifie normalement.
+> Un `ENUM` natif n'est mappable qu'avec une annotation propriétaire du framework de persistance portée par l'entité, ce qui ferait dépendre le **domaine** d'Hibernate, en violation directe de TEC-01, et mécaniquement détecté par `ArchitectureTest` si quelqu'un l'introduisait. Son évolution est en outre coûteuse : `ALTER TYPE ... ADD VALUE` ne s'exécute pas dans une transaction, donc pas dans une migration Flyway transactionnelle, là où une contrainte `CHECK` se modifie normalement.
 
 C'est un exemple représentatif de ce que ce dossier entend par « architecture maintenable » : la décision n'est pas un choix de goût, elle découle directement d'une contrainte déjà posée (TEC-01) et reste vérifiable par le même garde-fou automatisé qui l'a motivée.
 
@@ -234,7 +277,7 @@ C'est un exemple représentatif de ce que ce dossier entend par « architecture 
 
 ### 5.1 Principe : refus par défaut, preuve par test
 
-`SEC-02` impose que l'autorisation soit **refusée par défaut, en couche service, pas en présentation** — masquer un bouton dans la vue n'est jamais une correction acceptable (`AUDIT.md` CRIT-3). Concrètement, l'autorisation est portée par `@PreAuthorize` sur les méthodes de service, et testée en appelant ces services **directement, sans passer par une URL** — ce qui prouve que le contrôle ne dépend pas du chemin d'entrée choisi par l'attaquant.
+`SEC-02` impose que l'autorisation soit **refusée par défaut, en couche service, pas en présentation**, masquer un bouton dans la vue n'est jamais une correction acceptable (`AUDIT.md` CRIT-3). Concrètement, l'autorisation est portée par `@PreAuthorize` sur les méthodes de service, et testée en appelant ces services **directement, sans passer par une URL**, ce qui prouve que le contrôle ne dépend pas du chemin d'entrée choisi par l'attaquant.
 
 ### 5.2 Correspondance vulnérabilité legacy → exigence → preuve
 
@@ -246,19 +289,19 @@ C'est un exemple représentatif de ce que ce dossier entend par « architecture 
 | CRIT-4 Contournement du workflow | RG-04/06/08 | Machine à états dans le domaine ; l'état est **toujours lu depuis la base**, jamais reçu du client (RG-06) |
 | CRIT-5 Validation des entrées | SEC-03, RG-12/13/14 | DTO validés en entrée de contrôleur ; `paysOrigine` revalidé côté serveur même si envoyé hors liste fermée |
 | CRIT-6 Secrets en dur | SEC-08/11, TEC-07 | Configuration par variables d'environnement (`application-prod.yml`), aucun secret versionné |
-| ELEV-1 XSS stocké | SEC-06 | Échappement Thymeleaf par défaut + **CSP restrictive `script-src 'none'`** (ajoutée en L3, hors périmètre initial de ce lot — voir §5.3) |
+| ELEV-1 XSS stocké | SEC-06 | Échappement Thymeleaf par défaut + **CSP restrictive `script-src 'none'`** (ajoutée en L3, hors périmètre initial de ce lot, voir §5.3) |
 | ELEV-2 CSRF | SEC-04 | Protection CSRF Spring Security active ; `AuthenticationSecurityIT` vérifie qu'une déconnexion sans jeton est rejetée |
 | ELEV-3 Fixation de session | SEC-05 | Session régénérée à l'authentification ; testé en comparant l'identifiant de session avant/après connexion |
-| ELEV-4 IDOR | RG-01 | `list()` et `findForReading()` (`ProductCatalogService`) délèguent tous deux la décision de portée au même objet `ProductScope` (`authorIdOrNull()`/`ensureVisible()`) plutôt que de dupliquer la règle RG-01 dans chaque méthode — un `OPERATOR` visant une fiche dont il n'est pas l'auteur est refusé même via l'URL directe (`US-13/CA-2`) |
+| ELEV-4 IDOR | RG-01 | `list()` et `findForReading()` (`ProductCatalogService`) délèguent tous deux la décision de portée au même objet `ProductScope` (`authorIdOrNull()`/`ensureVisible()`) plutôt que de dupliquer la règle RG-01 dans chaque méthode, un `OPERATOR` visant une fiche dont il n'est pas l'auteur est refusé même via l'URL directe (`US-13/CA-2`) |
 | ELEV-5 Fuite d'informations | SEC-13 | `GlobalErrorController` ne renvoie jamais de trace, de nom de classe d'exception ni de chemin interne ; identifiant de corrélation (MDC) affiché à l'utilisateur, journalisé côté serveur (US-17) |
 | ELEV-6 Absence d'audit | RG-17/18 | `AuditEntry`, entrée **immuable**, écrite dans la **même transaction** que chaque transition métier |
 | ELEV-7 Session non durcie | SEC-09 | Cookies `HttpOnly`/`Secure`/`SameSite=Lax`, expiration 30 min |
 
 ### 5.3 Deux exigences orphelines rattrapées en L3
 
-`SEC-02` (autorisation en couche service) et `SEC-06` (CSP restrictive) n'étaient rattachées à aucun lot dans le découpage initial de `SPECIFICATIONS.md` §11. Elles ont été prises en charge dans L3, premier lot introduisant des actions différenciées par rôle et des champs libres réaffichés à l'écran — la fenêtre de risque la plus pertinente pour les traiter, plutôt que de les repousser artificiellement à un lot de « durcissement final ».
+`SEC-02` (autorisation en couche service) et `SEC-06` (CSP restrictive) n'étaient rattachées à aucun lot dans le découpage initial de `SPECIFICATIONS.md` §11. Elles ont été prises en charge dans L3, premier lot introduisant des actions différenciées par rôle et des champs libres réaffichés à l'écran, la fenêtre de risque la plus pertinente pour les traiter, plutôt que de les repousser artificiellement à un lot de « durcissement final ».
 
-### 5.4 La séparation des tâches (RG-02) est un contrôle distinct du contrôle de rôle
+### 5.4 Séparation des tâches (RG-02)
 
 Point technique notable : un `VALIDATOR` a le droit d'accéder à l'écran de validation d'une fiche dont il est l'auteur (il a le bon rôle), mais **pas le droit de la valider lui-même**. Les deux scénarios Gherkin de `SPECIFICATIONS.md` §6/M3 sont couverts littéralement dans les tests :
 
@@ -285,13 +328,13 @@ Traiter ces deux refus différemment (403 pur vs. ré-affichage avec motif) est 
     ignore-unfixed: true
 ```
 
-Ce choix (scanner l'image plutôt que le seul `pom.xml`) couvre en une passe les dépendances Java embarquées dans le jar **et** les paquets du système d'exploitation de base — ce qu'une analyse Maven seule ne verrait jamais. `ignore-unfixed: true` est également un choix assumé et documenté dans le workflow : bloquer la construction sur une vulnérabilité sans correctif disponible rendrait la CI rouge en permanence sans qu'aucune action corrective ne soit possible.
+Ce choix (scanner l'image plutôt que le seul `pom.xml`) couvre en une passe les dépendances Java embarquées dans le jar **et** les paquets du système d'exploitation de base, ce qu'une analyse Maven seule ne verrait jamais. `ignore-unfixed: true` est également un choix assumé et documenté dans le workflow : bloquer la construction sur une vulnérabilité sans correctif disponible rendrait la CI rouge en permanence sans qu'aucune action corrective ne soit possible.
 
 ---
 
 ## 6. Qualité et tests
 
-### 6.1 Stratégie de test à deux vitesses
+### 6.1 Stratégie de test
 
 La suite distingue explicitement deux niveaux, par suffixe de nom de classe (`SPECIFICATIONS.md` §9.3) :
 
@@ -300,11 +343,11 @@ La suite distingue explicitement deux niveaux, par suffixe de nom de classe (`SP
 | Unitaire (domaine, services avec dépendances simulées) | `*Test.java` | Surefire (`mvn test`) | JUnit 5, AssertJ, Mockito | Non |
 | Intégration (repositories, contrôleurs, sécurité) | `*IT.java` | Failsafe (`mvn verify`) | Testcontainers + PostgreSQL réel, MockMvc, Spring Security Test | Oui |
 
-Cette séparation donne un retour rapide en développement (`mvn test`, quelques secondes) tout en gardant une garantie complète avant fusion (`mvn verify`, seule commande utilisée en CI et dans le hook `pre-push`) — **une seule commande**, aucune base à préparer à la main (QUA-08).
+Cette séparation donne un retour rapide en développement (`mvn test`, quelques secondes) tout en gardant une garantie complète avant fusion (`mvn verify`, seule commande utilisée en CI et dans le hook `pre-push`), **une seule commande**, aucune base à préparer à la main (QUA-08).
 
-**État de la suite au 30/07/2026 :** 55 tests unitaires + 72 tests d'intégration, tous verts (dernière exécution complète : `mvn verify`, `BUILD SUCCESS`). Parmi les tests d'intégration : `AuthenticationSecurityIT` (7 scénarios, dont `admin' --` et le verrouillage après 5 échecs), `ProductAuthorizationIT`, `ReviewRoundTripIT`, `SqlBudgetIT`, `PageWeightIT`, `AccessibilityIT` — chaque suite nommée d'après ce qu'elle prouve, pas d'après la classe qu'elle teste.
+**État de la suite au 30/07/2026 :** 55 tests unitaires + 72 tests d'intégration, tous verts (dernière exécution complète : `mvn verify`, `BUILD SUCCESS`). Parmi les tests d'intégration : `AuthenticationSecurityIT` (7 scénarios, dont `admin' --` et le verrouillage après 5 échecs), `ProductAuthorizationIT`, `ReviewRoundTripIT`, `SqlBudgetIT`, `PageWeightIT`, `AccessibilityIT`, chaque suite nommée d'après ce qu'elle prouve, pas d'après la classe qu'elle teste.
 
-### 6.2 Couverture imposée, pas seulement rapportée
+### 6.2 Couverture
 
 ```xml
 <!-- QUA-01 : le build echoue si la couverture domaine/application passe sous 80% -->
@@ -318,7 +361,7 @@ Cette séparation donne un retour rapide en développement (`mvn test`, quelques
 
 JaCoCo est configuré en `goal=check` à la phase `verify`, ciblé sur `com/datacom/*/domain/**` et `com/datacom/*/application/**` : **le build échoue** si le seuil n'est pas atteint, ce n'est pas un rapport qu'on peut ignorer.
 
-### 6.3 Clean Code : des règles qui préviennent, pas qui constatent
+### 6.3 Clean Code
 
 Checkstyle impose deux limites directement dérivées d'un défaut réel du legacy (`checkstyle.xml`, commentaire du fichier) :
 
@@ -329,7 +372,7 @@ Checkstyle impose deux limites directement dérivées d'un défaut réel du lega
 <module name="ParameterNumber"><property name="max" value="6"/></module>
 ```
 
-**Exemple réel de refactoring provoqué par cette contrainte** : `AuditEntry` a besoin de `productId`, `userId`, `action`, l'état avant, l'état après, un commentaire et un horodatage — sept données pour construire une entrée d'audit. Plutôt que dépasser la limite à 6 paramètres, `from`/`to` sont regroupés dans un type dédié :
+**Exemple réel de refactoring provoqué par cette contrainte** : `AuditEntry` a besoin de `productId`, `userId`, `action`, l'état avant, l'état après, un commentaire et un horodatage, sept données pour construire une entrée d'audit. Plutôt que dépasser la limite à 6 paramètres, `from`/`to` sont regroupés dans un type dédié :
 
 ```java
 /** Le couple (etat avant, etat apres) d'une transition RG-04. Les deux valeurs ne circulent
@@ -340,9 +383,9 @@ public AuditEntry(Long productId, Long userId, AuditAction action,
                    StatusTransition transition, String comment, Instant occurredAt) { /* 6 params */ }
 ```
 
-Le gain n'est pas seulement de respecter la règle : regrouper `from`/`to` élimine aussi la possibilité qu'un appelant les inverse par erreur — un paramètre nommé vaut mieux que deux positionnels de même type.
+Le gain n'est pas seulement de respecter la règle : regrouper `from`/`to` élimine aussi la possibilité qu'un appelant les inverse par erreur, un paramètre nommé vaut mieux que deux positionnels de même type.
 
-Spotless (`googleJavaFormat`, style AOSP) formate automatiquement et retire les imports inutilisés à chaque commit (hook `pre-commit`) et re-vérifie en `verify` (QUA-04) — aucun débat de style n'entre dans une revue de code.
+Spotless (`googleJavaFormat`, style AOSP) formate automatiquement et retire les imports inutilisés à chaque commit (hook `pre-commit`) et re-vérifie en `verify` (QUA-04), aucun débat de style n'entre dans une revue de code.
 
 ### 6.4 Flyway : le schéma comme code versionné (TEC-05)
 
@@ -354,53 +397,49 @@ Contrairement au legacy, où le schéma est un script joué une fois par Docker 
 | `V2__add_last_failed_attempt.sql` | RG-22, verrouillage de compte |
 | `V4__align_column_types.sql` | Décision D5 : conversion `product_status` en `VARCHAR`+`CHECK` |
 | `V6__product_search_index.sql` | US-14, colonne générée + index trigramme |
-| `dev/V3__seed_dev_users.sql`, `dev/V5__seed_second_dev_operator.sql` | Comptes de démonstration — **profil `dev` uniquement**, jamais chargés en production (TEC-07) |
+| `dev/V3__seed_dev_users.sql`, `dev/V5__seed_second_dev_operator.sql` | Comptes de démonstration, **profil `dev` uniquement**, jamais chargés en production (TEC-07) |
 
-Les comptes utilisateurs sont exclusivement créés par migration (décision D2, §0) : il n'existe **aucun rôle `ADMIN` applicatif** ni écran de gestion de comptes dans le périmètre v1 — une limitation assumée, pas un oubli (voir §9).
+Les comptes utilisateurs sont exclusivement créés par migration (décision D2, §0) : il n'existe **aucun rôle `ADMIN` applicatif** ni écran de gestion de comptes dans le périmètre v1, une limitation assumée, pas un oubli (voir §9).
 
 ### 6.5 Journalisation structurée (QUA-05)
 
-La journalisation utilise Log4j2 (remplaçant Logback en fin de projet) avec Lombok `@Slf4j`, un identifiant de corrélation par requête (`CorrelationIdFilter`, MDC) présent dans chaque ligne de log et restitué à l'utilisateur sur les pages d'erreur 5xx (US-17/CA-3), et un logger dédié par module métier plutôt qu'un logger racine indifférencié — cohérent avec le découpage `TEC-02` par domaine fonctionnel.
+La journalisation utilise Log4j2 (remplaçant Logback en fin de projet) avec Lombok `@Slf4j`, un identifiant de corrélation par requête (`CorrelationIdFilter`, MDC) présent dans chaque ligne de log et restitué à l'utilisateur sur les pages d'erreur 5xx (US-17/CA-3), et un logger dédié par module métier plutôt qu'un logger racine indifférencié, cohérent avec le découpage `TEC-02` par domaine fonctionnel.
 
 ---
 
 ## 7. Écoconception
 
-### 7.1 Référence à battre
+### 7.1 Comparaison avec la legacy
 
-`AUDIT.md` §5 chiffre le legacy : page d'accueil **8,3 Mo** (deux logos BMP non compressés, transmis à leur résolution native puis réduits par le navigateur — 99 % des pixels transférés sont jetés au rendu), pages internes **2,0 Mo**, liste de produits chargée intégralement sans pagination, une connexion PostgreSQL physique ouverte par requête HTTP.
+`AUDIT.md` §5 chiffre le legacy : page d'accueil **8,3 Mo** (deux logos BMP non compressés, transmis à leur résolution native puis réduits par le navigateur, 99 % des pixels transférés sont jetés au rendu), pages internes **2,0 Mo**, liste de produits chargée intégralement sans pagination, une connexion PostgreSQL physique ouverte par requête HTTP.
 
-### 7.2 Mesures réelles, pas estimées (ECO-17)
+### 7.2 Mesures (ECO-17)
 
-Les chiffres ci-dessous sont mesurés le 29/07/2026 sur l'application réellement démarrée (`docker compose up`, 25 fiches, `curl` pour les poids, 100 requêtes par écran pour les temps de réponse) — détail complet dans [`ECO-17-mesures.md`](ECO-17-mesures.md).
+Les chiffres ci-dessous sont mesurés le 29/07/2026 sur l'application réellement démarrée (`docker compose up`, 25 fiches, `curl` pour les poids, 100 requêtes par écran pour les temps de réponse), détail complet dans [`ECO-17-mesures.md`](ECO-17-mesures.md).
 
 | Indicateur | Avant (legacy) | Après (mesuré) | Rapport |
 |---|---:|---:|---:|
 | Page d'accueil | 8,3 Mo | **6,8 Ko** | **≈ 1 250× plus léger** |
 | Page interne | 2,0 Mo | **7,5 Ko** | **≈ 270× plus léger** |
-| Requêtes SQL / écran (liste) | non borné | **2**, constant quel que soit le volume | — |
+| Requêtes SQL / écran (liste) | non borné | **2**, constant quel que soit le volume |, |
 | P95 (écrans de consultation) | non mesurable | **28 ms** (seuil 300 ms) | **10× sous le seuil** |
-| Démarrage de l'application | — | **10,2 s** (seuil 30 s) | atteint |
+| Démarrage de l'application |, | **10,2 s** (seuil 30 s) | atteint |
 | Connexions base observées | 1 par requête | **6, stables** (pool HikariCP) | découplé du trafic |
 
 L'écart de poids ne vient pas d'une optimisation fine mais de **trois décisions structurelles** (`ECO-17-mesures.md`) : aucune image décorative lourde, aucun JavaScript, une liste bornée à 20 lignes (ECO-11) au lieu d'un rendu complet de table.
 
 ### 7.3 Budgets contraignants, vérifiés par des tests qui font échouer le build
 
-`SPECIFICATIONS.md` §7.2 fixe des budgets dont le dépassement **fait échouer la CI, comme un test rouge**. Ils sont vérifiés par `PageWeightIT` et `SqlBudgetIT` — pas seulement mesurés a posteriori dans un rapport ignorable.
+`SPECIFICATIONS.md` §7.2 fixe des budgets dont le dépassement **fait échouer la CI, comme un test rouge**. Ils sont vérifiés par `PageWeightIT` et `SqlBudgetIT`, pas seulement mesurés a posteriori dans un rapport ignorable.
 
 | Exigence | Budget | Mesuré | Statut |
 |---|---:|---:|---|
-| ECO-01 — poids 1ʳᵉ visite | ≤ 300 Ko | 7,5 Ko | ✅ 40× sous le budget |
-| ECO-02 — poids visite suivante | ≤ 60 Ko | 1,6 Ko | ✅ 37× sous le budget |
-| ECO-03 — requêtes SQL / écran | ≤ 3 | 2, constant | ✅ |
-| ECO-04 — poids total images | ≤ 50 Ko | 14,3 Ko | ✅ |
+| ECO-01, poids 1ʳᵉ visite | ≤ 300 Ko | 7,5 Ko | ✅ 40× sous le budget |
+| ECO-02, poids visite suivante | ≤ 60 Ko | 1,6 Ko | ✅ 37× sous le budget |
+| ECO-03, requêtes SQL / écran | ≤ 3 | 2, constant | ✅ |
+| ECO-04, poids total images | ≤ 50 Ko | 14,3 Ko | ✅ |
 
-Point vérifié le plus important : **l'indépendance au volume**, pas seulement le chiffre à un instant donné — `SqlBudgetIT` compte les requêtes exécutées à deux volumes différents et échoue si le compte varie, ce qu'un test à volume unique ne détecterait jamais (un « N+1 » tiendrait le budget sur un jeu de données minuscule et exploserait en production).
-
-### 7.4 L'argument à retenir pour la soutenance
-
-`AUDIT.md` §5.8 : *« les deux correctifs à très faible effort — convertir deux images et activer un pool de connexions — portent l'essentiel du gain »*. C'est un résultat reproductible ici : la conversion WebP et le pool HikariCP, chacun de l'ordre de l'heure de travail, expliquent l'essentiel du facteur 1 250× mesuré. L'écoconception n'a été traitée comme un chantier séparé dans aucun lot — chaque correctif improve simultanément l'empreinte, le temps de réponse et la fiabilité (le pool de connexions corrige aussi une fuite de ressources, §3.2 de l'audit).
+Point vérifié le plus important : **l'indépendance au volume**, pas seulement le chiffre à un instant donné, `SqlBudgetIT` compte les requêtes exécutées à deux volumes différents et échoue si le compte varie, ce qu'un test à volume unique ne détecterait jamais (un « N+1 » tiendrait le budget sur un jeu de données minuscule et exploserait en production).
 
 ---
 
@@ -408,21 +447,21 @@ Point vérifié le plus important : **l'indépendance au volume**, pas seulement
 
 ### 8.1 Modèle de branches : GitHub Flow, pas Git Flow complet
 
-Choix documenté dans [`CONTRIBUTING.md`](../CONTRIBUTING.md) : `main` reste toujours buildable et ne reçoit que des fusions de branches `lot/lN-nom-court` validées, une branche par lot. **Git Flow complet (develop/release/hotfix) a été écarté** : le projet n'a pas de release versionnée à maintenir en parallèle d'un développement continu — il livre lot par lot, en continu, vers un seul environnement cible. La branche `develop` supplémentaire n'aurait ajouté qu'une étape de synchronisation sans bénéfice, pour un projet à un seul flux de livraison.
+Choix documenté dans [`CONTRIBUTING.md`](../CONTRIBUTING.md) : `main` reste toujours buildable, et ne reçoit que des fusions de branches `lot/lN-nom-court` validées, une branche par lot. **Git Flow complet (develop/release/hotfix) a été écarté** : le projet n'a pas de release versionnée à maintenir en parallèle d'un développement continu, il livre lot par lot, en continu, vers un seul environnement cible. Une branche `develop` supplémentaire n'aurait ajouté qu'une complexification sans bénéfice, pour un projet à un seul flux de livraison.
 
 ### 8.2 Conventional Commits, imposés mécaniquement
 
-Chaque commit suit `<type>(<scope>): <résumé>`, avec un scope `l0`..`l6` rattachant le commit au lot concerné — vérifié par `commitlint` au hook `commit-msg`, pas laissé à la discipline individuelle. Chaque lot est décomposé en plusieurs commits atomiques (squelette, migration, gestion d'erreurs, tests, documentation) plutôt qu'un commit monolithique par lot, pour que l'historique reste exploitable en revue.
+Chaque commit suit `<type>(<scope>): <résumé>`, avec un scope `l0`..`l6` rattachant le commit au lot concerné, vérifié par `commitlint` au hook `commit-msg`. Chaque lot est décomposé en plusieurs commits atomiques (squelette, migration, gestion d'erreurs, tests, documentation) plutôt qu'un commit monolithique par lot, pour que l'historique reste exploitable en revue.
 
-### 8.3 Trois hooks, trois garanties différentes
+### 8.3 les différents Hooks
 
 | Hook | Déclenché par | Vérifie | Pourquoi à ce niveau précisément |
 |---|---|---|---|
 | `pre-commit` | tout commit touchant `.java`/`.xml`/`.yml`/`.sql` | Spotless (auto-format + restage), Checkstyle, tests **unitaires** | Rapide (pas de Docker) : retour immédiat sans casser le flux de frappe |
-| `commit-msg` | tout commit | Conventional Commits (commitlint) | Garantit la traçabilité lot↔commit sans relecture manuelle |
-| `pre-push` | tout `git push` | `mvn verify` complet : unitaires + intégration (Testcontainers), Checkstyle, Spotless, couverture | Seule étape suffisamment coûteuse (Docker, Testcontainers) pour être réservée au push plutôt qu'à chaque commit |
+| `commit-msg` | chaque commit | Conventional Commits (commitlint) | Garantit la traçabilité lot↔commit sans relecture manuelle |
+| `pre-push` | chaque `git push` | `mvn verify` complet : unitaires + intégration (Testcontainers), Checkstyle, Spotless, couverture | Seule étape suffisamment coûteuse (Docker, Testcontainers) pour être réservée au push plutôt qu'à chaque commit |
 
-`scripts/run-maven.sh` bascule automatiquement sur `docker run maven:3.9-eclipse-temurin-25` si aucun JDK 25 local n'est détecté sur `PATH`, pour que les hooks fonctionnent à l'identique sur n'importe quel poste, sans installation préalable — condition nécessaire pour qu'un second contributeur puisse rejoindre le projet sans configuration lourde.
+`scripts/run-maven.sh` bascule automatiquement sur `docker run maven:3.9-eclipse-temurin-25` si aucun JDK 25 local n'est détecté sur `PATH`, pour que les hooks fonctionnent à l'identique sur n'importe quel poste, sans installation préalable, ce qui permet à un second contributeur de rejoindre le projet sans configuration lourde.
 
 ### 8.4 Revue par Pull Request, historique non réécrit
 
@@ -430,9 +469,9 @@ Les sept lots sont fusionnés dans `main` par sept Pull Requests GitHub réelles
 
 ### 8.5 Maintenance continue des dépendances
 
-Dependabot est actif sur trois écosystèmes (`maven`, `docker`, `github-actions`), vérification hebdomadaire (`.github/dependabot.yml`) — plusieurs Pull Requests de mise à jour ont déjà été ouvertes et revues (Maven, image Docker de base, actions GitHub, Spotless, JaCoCo), traitées avec la même exigence de CI verte que n'importe quel autre changement.
+Dependabot est actif sur trois écosystèmes (`maven`, `docker`, `github-actions`), vérification hebdomadaire (`.github/dependabot.yml`), plusieurs Pull Requests de mise à jour ont déjà été ouvertes et revues (Maven, image Docker de base, actions GitHub, Spotless, JaCoCo), traitées avec la même exigence de CI verte que n'importe quel autre changement.
 
-### 8.6 Intégration continue comme filet, pas comme formalité
+### 8.6 Intégration continue
 
 `.github/workflows/ci.yml` exécute `mvn verify` (compilation, tests unitaires **et** d'intégration, Checkstyle, couverture JaCoCo) à chaque push et Pull Request, puis un second job construit l'image conteneur et la scanne (Trivy, §5.5) avant de la considérer publiable. Le rapport JaCoCo est conservé en artefact de build, consultable sans avoir à relancer les tests localement.
 
@@ -442,15 +481,13 @@ Dependabot est actif sur trois écosystèmes (`maven`, `docker`, `github-actions
 
 ### 9.1 Ce qui est fait
 
-Les six lots (L0→L6) sont **intégralement mergés dans `main`** — le scope v1 de `SPECIFICATIONS.md` est complet : 127 tests automatisés (55 unitaires + 72 d'intégration), tous verts, seuil de couverture JaCoCo à 80 % atteint sur domaine et application, budgets d'écoconception ECO-01→04/10/11 tous vérifiés par test, les 6 vulnérabilités critiques et 7 élevées de l'audit couvertes chacune par au moins un test de non-régression nommé (traçabilité complète en annexe §10.2).
+Les six lots (L0→L6) sont **intégralement mergés dans `main`**, le scope v1 de `SPECIFICATIONS.md` est complet : 127 tests automatisés (55 unitaires + 72 d'intégration), tous verts, seuil de couverture JaCoCo à 80 % atteint sur domaine et application, budgets d'écoconception ECO-01→04/10/11 tous vérifiés par test, les 6 vulnérabilités critiques et 7 élevées de l'audit couvertes chacune par au moins un test de non-régression nommé (traçabilité complète en annexe §10.2).
 
-### 9.2 Ce qui n'a pas été fait, et pourquoi c'est dit ici plutôt que caché
+### 9.2 Ce qui n'a pas été fait, et pourquoi
 
-- **PERF-03 (10 000 fiches) et PERF-04 (50 utilisateurs simultanés) ne sont pas mesurés.** Les chiffres du §7.2 sont relevés en local, sans concurrence, sur 25 fiches (`ECO-17-mesures.md`, « Limite assumée »). Ils établissent un ordre de grandeur et l'absence de dérive manifeste, pas une garantie à l'échelle — une campagne de charge dédiée reste à mener.
-- **L'image conteneur pèse 538 Mo.** `ECO-14` (image basée sur un JRE sans outillage de développement) est satisfaite, mais un runtime réduit via `jlink` aux seuls modules utilisés la ramènerait à quelques dizaines de mégaoctets. Non traité ici : le gain porte sur le stockage et le temps de déploiement, pas sur la consommation à l'exécution — c'est une évolution candidate, pas un manque vis-à-vis des exigences.
-- **Hors périmètre v1, par arbitrage explicite** (`SPECIFICATIONS.md` §0 et §12) : pas de motif de rejet obligatoire ni d'historique de rejets multiples (D3 — un seul aller-retour `IN_REVIEW → DRAFT` possible) ; pas d'écran de gestion des comptes ni de rôle `ADMIN` applicatif (D2 — comptes créés par migration Flyway) ; pas d'import/export de masse, de pièces jointes, de notifications par courriel, de multi-organisation ni de multilinguisme.
-
-Ces limites sont documentées **au même endroit** que les résultats, pas reléguées à une annexe ou omises : un dossier technique qui ne prétend couvrir que ce qu'il couvre réellement est plus défendable à l'oral qu'un dossier qui laisse deviner ses angles morts.
+- **PERF-03 (10 000 fiches) et PERF-04 (50 utilisateurs simultanés) ne sont pas mesurés.** Les chiffres du §7.2 sont relevés en local, sans concurrence, sur 25 fiches (`ECO-17-mesures.md`).
+- **L'image conteneur pèse 538 Mo.** `ECO-14` (image basée sur un JRE sans outillage de développement) est satisfaite, mais un runtime réduit via `jlink` aux seuls modules utilisés la ramènerait à quelques dizaines de mégaoctets. Non traité ici, car le gain porte uniquement sur le stockage et le temps de déploiement, pas sur la consommation à l'exécution. Ce n'était pas la priorité
+- **Hors périmètre v1, par arbitrage explicite** (`SPECIFICATIONS.md` §0 et §12) : pas de motif de rejet obligatoire ni d'historique de rejets multiples (D3, un seul aller-retour `IN_REVIEW → DRAFT` possible) ; pas d'écran de gestion des comptes ni de rôle `ADMIN` applicatif (D2, comptes créés par migration Flyway) ; pas d'import/export de masse, de pièces jointes, de notifications par courriel, de multi-organisation ni de multilinguisme.
 
 ---
 
@@ -474,13 +511,323 @@ Ces limites sont documentées **au même endroit** que les résultats, pas relé
 ```mermaid
 stateDiagram-v2
     [*] --> DRAFT
-    DRAFT --> IN_REVIEW: soumettre (OPERATOR auteur,\nétapes 1-4 complètes — RG-08)
+    DRAFT --> IN_REVIEW: soumettre (OPERATOR auteur,\nétapes 1-4 complètes, RG-08)
     IN_REVIEW --> VALIDATED: valider (VALIDATOR non auteur)
     IN_REVIEW --> DRAFT: renvoyer en brouillon\n(VALIDATOR non auteur, commentaire optionnel)
     VALIDATED --> [*]: état terminal (RG-05)
 ```
+### 10.3 Diagrammes de séquences
 
-### 10.3 Traçabilité audit → spécifications (extrait — table complète : `SPECIFICATIONS.md` §13)
+1. **CRÉATION FICHE PRODUIT**
+```mermaid
+sequenceDiagram
+    actor Operateur
+    participant Navigateur
+    participant Securite as Spring Security
+    participant Controleur as ProductController
+    participant Service as ProductEditService
+    participant Domaine as Product
+    participant Workflow as ProductWorkflowService
+    participant Repo as ProductRepository
+    participant Audit as AuditEntryRepository
+    participant BDD as PostgreSQL
+
+    Operateur->>Navigateur: Clique "Nouvelle fiche"
+    Navigateur->>Securite: POST /fiches
+    Securite->>Securite: Verifie session active + role OPERATOR
+    Securite->>Controleur: create(principal)
+    Controleur->>Service: create(authorId)
+    Service->>Domaine: new Product(authorId)
+    Note over Domaine: statut = DRAFT, etape = 1
+    Service->>Repo: save(product)
+    Repo->>BDD: INSERT INTO products
+    BDD-->>Repo: id genere
+    Repo-->>Service: Product
+    Service-->>Controleur: id
+    Controleur-->>Navigateur: redirect /fiches/{id}/etape/1
+
+    loop Etapes 1 a 3 : identification, classification, tracabilite
+        Navigateur->>Controleur: GET /fiches/{id}/etape/{step}
+        Controleur->>Service: findForAuthor(id, authorId)
+        Service->>Repo: findById(id)
+        Repo->>BDD: SELECT
+        BDD-->>Repo: ligne produit
+        Repo-->>Service: Product
+        Service->>Domaine: ensureAuthoredBy(authorId)
+        Domaine-->>Service: OK (sinon UnauthorizedProductActionException)
+        Service-->>Controleur: Product
+        Controleur-->>Navigateur: formulaire pre-rempli
+
+        Operateur->>Navigateur: Saisit les champs de l'etape
+        Navigateur->>Controleur: POST /fiches/{id}/etape/{step}
+        Controleur->>Service: saveEtape(id, authorId, version, donnees)
+        Service->>Repo: findById(id)
+        Repo-->>Service: Product
+        Service->>Domaine: ensureAuthoredBy(authorId)
+        Service->>Service: compare version a expectedVersion (RG-07)
+
+        alt Conflit de version (fiche modifiee entre-temps)
+            Service-->>Controleur: ProductModifiedConcurrentlyException
+            Controleur-->>Navigateur: reaffiche le formulaire + message d'erreur
+        else Version a jour
+            Service->>Domaine: updateIdentification / updateClassification / updateTraceability
+            Domaine->>Domaine: valide format, longueur, liste de pays (RG-xx)
+            alt Champ invalide
+                Domaine-->>Service: ProductInputException
+                Service-->>Controleur: exception
+                Controleur-->>Navigateur: reaffiche le formulaire, saisie conservee
+            else Donnees valides
+                Service->>Repo: save(product)
+                Repo->>BDD: UPDATE products
+                Service-->>Controleur: OK
+                Controleur-->>Navigateur: redirect vers l'etape suivante
+            end
+        end
+    end
+
+    Operateur->>Navigateur: Clique "Soumettre au controle"
+    Navigateur->>Controleur: POST /fiches/{id}/soumettre
+    Controleur->>Workflow: submit(id, authorId)
+    Workflow->>Repo: findById(id)
+    Repo-->>Workflow: Product
+    Workflow->>Domaine: submit(authorId, now)
+    Domaine->>Domaine: verifie statut == DRAFT, auteur, fiche complete (RG-08)
+
+    alt Fiche incomplete
+        Domaine-->>Workflow: IncompleteProductException
+        Workflow-->>Controleur: exception
+        Controleur-->>Navigateur: reaffiche l'etape 4 + message d'erreur
+    else Fiche complete
+        Note over Domaine: statut DRAFT -> IN_REVIEW
+        Domaine-->>Workflow: OK
+        Workflow->>Repo: save(product)
+        Repo->>BDD: UPDATE products
+        Workflow->>Audit: save(AuditEntry SUBMIT)
+        Audit->>BDD: INSERT INTO audit_entry
+        Workflow-->>Controleur: OK
+        Controleur-->>Navigateur: redirect /fiches/{id}/etape/4
+    end
+```
+
+2. **SUIVI ÉTAT AVANCEMENT**
+```mermaid
+sequenceDiagram
+    actor Operateur
+    participant Navigateur
+    participant HomeCtrl as HomeController
+    participant CatalogCtrl as CatalogController
+    participant CatalogSvc as ProductCatalogService
+    participant Repo as ProductRepository
+    participant BDD as PostgreSQL
+
+    Operateur->>Navigateur: Ouvre l'accueil apres connexion
+    Navigateur->>HomeCtrl: GET /
+    HomeCtrl->>CatalogSvc: homeCounts(userId, role)
+    CatalogSvc->>Repo: countByCreatedByAndStatus(userId, DRAFT)
+    Repo->>BDD: SELECT count(*) ... WHERE created_by = ? AND status = 'DRAFT'
+    BDD-->>Repo: nombre de brouillons
+    Repo-->>CatalogSvc: myDrafts
+    Note over CatalogSvc: awaitingReview = 0 pour un OPERATOR (reserve au VALIDATOR)
+    CatalogSvc-->>HomeCtrl: HomeCounts(myDrafts, awaitingReview)
+    HomeCtrl-->>Navigateur: accueil avec compteurs de suivi
+
+    Operateur->>Navigateur: Clique "Mes fiches"
+    Navigateur->>CatalogCtrl: GET /fiches?tri=updatedAt
+    CatalogCtrl->>CatalogSvc: list(scope=OPERATOR, statut=null, ordre)
+    CatalogSvc->>Repo: findList(authorId, statut, pageable)
+    Repo->>BDD: SELECT ... WHERE created_by = ? ORDER BY updated_at DESC
+    BDD-->>Repo: page de fiches
+    Repo-->>CatalogSvc: Page de ProductListItem
+    CatalogSvc-->>CatalogCtrl: page de resultats
+    CatalogCtrl-->>Navigateur: liste des fiches avec statut courant et etape en cours
+
+    Operateur->>Navigateur: Filtre par statut, ex. IN_REVIEW
+    Navigateur->>CatalogCtrl: GET /fiches?statut=IN_REVIEW
+    CatalogCtrl->>CatalogSvc: list(scope=OPERATOR, statut=IN_REVIEW, ordre)
+    CatalogSvc->>Repo: findList(authorId, IN_REVIEW, pageable)
+    Repo->>BDD: SELECT ... WHERE created_by = ? AND status = 'IN_REVIEW'
+    BDD-->>Repo: fiches filtrees
+    Repo-->>CatalogSvc: Page de ProductListItem
+    CatalogSvc-->>CatalogCtrl: page filtree
+    CatalogCtrl-->>Navigateur: fiches actuellement en attente de controle
+```
+
+3. **CRÉATION FICHE PRODUIT**
+```mermaid
+sequenceDiagram
+    actor Validateur
+    participant Navigateur
+    participant ReviewCtrl as ReviewController
+    participant ReviewSvc as ProductReviewService
+    participant WorkflowSvc as ProductWorkflowService
+    participant Domaine as Product
+    participant Repo as ProductRepository
+    participant Audit as AuditEntryRepository
+    participant BDD as PostgreSQL
+
+    Validateur->>Navigateur: Ouvre "Fiches a controler"
+    Navigateur->>ReviewCtrl: GET /controle
+    ReviewCtrl->>ReviewSvc: queue(page)
+    Note over ReviewSvc: methode reservee au role VALIDATOR (SEC-02)
+    ReviewSvc->>Repo: findQueueByStatus(IN_REVIEW, pageable)
+    Repo->>BDD: SELECT ... WHERE status = 'IN_REVIEW' ORDER BY updated_at ASC
+    BDD-->>Repo: fiches en attente
+    Repo-->>ReviewSvc: Page de ReviewQueueItem
+    ReviewSvc-->>ReviewCtrl: file d'attente
+    ReviewCtrl-->>Navigateur: liste des fiches a controler
+
+    Validateur->>Navigateur: Ouvre une fiche de la file
+    Navigateur->>ReviewCtrl: GET /controle/{id}
+    ReviewCtrl->>ReviewSvc: findForReview(id)
+    ReviewSvc->>Repo: findById(id)
+    Repo->>BDD: SELECT
+    BDD-->>Repo: fiche complete
+    Repo-->>ReviewSvc: Product
+    ReviewSvc-->>ReviewCtrl: Product
+    ReviewCtrl-->>Navigateur: detail complet de la fiche, lecture seule
+
+    Validateur->>Navigateur: Decide Valider ou Renvoyer en brouillon
+
+    alt Validation de la fiche
+        Navigateur->>ReviewCtrl: POST /controle/{id}/valider
+        ReviewCtrl->>WorkflowSvc: validate(id, validatorId)
+        WorkflowSvc->>Repo: findById(id)
+        Repo-->>WorkflowSvc: Product
+        WorkflowSvc->>Domaine: validate(validatorId, now)
+        Domaine->>Domaine: verifie statut == IN_REVIEW
+
+        alt Le validateur est aussi l'auteur de la fiche
+            Domaine-->>WorkflowSvc: UnauthorizedProductActionException (RG-02)
+            WorkflowSvc-->>ReviewCtrl: exception
+            ReviewCtrl-->>Navigateur: reaffiche la fiche + motif de refus
+        else Validateur distinct de l'auteur
+            Note over Domaine: statut IN_REVIEW -> VALIDATED
+            Domaine-->>WorkflowSvc: OK
+            WorkflowSvc->>Repo: save(product)
+            Repo->>BDD: UPDATE products
+            WorkflowSvc->>Audit: save(AuditEntry VALIDATE)
+            Audit->>BDD: INSERT INTO audit_entry
+            WorkflowSvc-->>ReviewCtrl: OK
+            ReviewCtrl-->>Navigateur: redirect /controle
+        end
+
+    else Renvoi en brouillon, fiche non conforme
+        Navigateur->>ReviewCtrl: POST /controle/{id}/renvoyer, commentaire
+        ReviewCtrl->>WorkflowSvc: returnToDraft(id, validatorId, commentaire)
+        WorkflowSvc->>Repo: findById(id)
+        Repo-->>WorkflowSvc: Product
+        WorkflowSvc->>Domaine: returnToDraft(validatorId)
+        Domaine->>Domaine: verifie statut == IN_REVIEW et validateur different de l'auteur (RG-02)
+        Note over Domaine: statut IN_REVIEW -> DRAFT
+        Domaine-->>WorkflowSvc: OK
+        WorkflowSvc->>Repo: save(product)
+        Repo->>BDD: UPDATE products
+        WorkflowSvc->>Audit: save(AuditEntry RETURN_TO_DRAFT, commentaire)
+        Audit->>BDD: INSERT INTO audit_entry
+        WorkflowSvc-->>ReviewCtrl: OK
+        ReviewCtrl-->>Navigateur: redirect /controle
+    end
+```
+
+4. **CONSULTATION PRODUITS**
+```mermaid
+sequenceDiagram
+    actor Utilisateur
+    participant Navigateur
+    participant CatalogCtrl as CatalogController
+    participant CatalogSvc as ProductCatalogService
+    participant Repo as ProductRepository
+    participant BDD as PostgreSQL
+
+    Note over Utilisateur: Operateur ou Validateur, connecte
+
+    Utilisateur->>Navigateur: Ouvre "Fiches produits"
+    Navigateur->>CatalogCtrl: GET /fiches?statut=&tri=updatedAt&page=0
+    CatalogCtrl->>CatalogCtrl: scopeOf(principal)
+    Note over CatalogCtrl: OPERATOR voit ses fiches, VALIDATOR voit toutes les fiches (RG-01)
+    CatalogCtrl->>CatalogSvc: list(scope, statut, ordre)
+    CatalogSvc->>Repo: findList(authorIdOuNull, statut, pageable)
+    Repo->>BDD: SELECT ... [WHERE created_by = ?] ORDER BY tri LIMIT 20
+    BDD-->>Repo: page de fiches
+    Repo-->>CatalogSvc: Page de ProductListItem
+    CatalogSvc-->>CatalogCtrl: page de resultats
+    CatalogCtrl-->>Navigateur: liste paginee : reference, nom, statut, date
+
+    opt Utilisateur = VALIDATOR : recherche libre (US-14)
+        Utilisateur->>Navigateur: Saisit un terme de recherche
+        Navigateur->>CatalogCtrl: GET /fiches/recherche?terme=...
+        CatalogCtrl->>CatalogSvc: search(terme, ordre)
+        CatalogSvc->>CatalogSvc: verifie role VALIDATOR, sinon refus
+        CatalogSvc->>Repo: search(motif normalise, pageable)
+        Repo->>BDD: SELECT ... WHERE search_text LIKE ? (index trigramme)
+        BDD-->>Repo: fiches correspondantes
+        Repo-->>CatalogSvc: Page de ProductListItem
+        CatalogSvc-->>CatalogCtrl: resultats
+        CatalogCtrl-->>Navigateur: liste des fiches trouvees
+    end
+
+    Utilisateur->>Navigateur: Change de page ou trie par colonne
+    Navigateur->>CatalogCtrl: GET /fiches?page=1&tri=reference
+    CatalogCtrl->>CatalogSvc: list(scope, statut, ordre)
+    Note over CatalogSvc: tri restreint a reference, nom, date de maj (SEC-03)
+    CatalogSvc->>Repo: findList(...)
+    Repo->>BDD: SELECT ...
+    BDD-->>Repo: page suivante
+    Repo-->>CatalogSvc: Page de ProductListItem
+    CatalogSvc-->>CatalogCtrl: page de resultats
+    CatalogCtrl-->>Navigateur: liste mise a jour
+```
+
+5. **DÉTAIL PRODUIT**
+```mermaid
+sequenceDiagram
+    actor Utilisateur
+    participant Navigateur
+    participant CatalogCtrl as CatalogController
+    participant CatalogSvc as ProductCatalogService
+    participant Domaine as Product
+    participant Repo as ProductRepository
+    participant Audit as AuditEntryRepository
+    participant BDD as PostgreSQL
+
+    Note over Utilisateur: Operateur ou Validateur, connecte
+
+    Utilisateur->>Navigateur: Clique sur une fiche dans la liste
+    Navigateur->>CatalogCtrl: GET /fiches/{id}
+    CatalogCtrl->>CatalogSvc: findForReading(id, scope)
+    CatalogSvc->>Repo: findById(id)
+    Repo->>BDD: SELECT
+
+    alt Fiche inexistante
+        BDD-->>Repo: aucune ligne
+        Repo-->>CatalogSvc: vide
+        CatalogSvc-->>CatalogCtrl: NoSuchElementException
+        CatalogCtrl-->>Navigateur: page 404
+    else Fiche trouvee
+        BDD-->>Repo: ligne produit
+        Repo-->>CatalogSvc: Product
+        CatalogSvc->>Domaine: scope.ensureVisible(product)
+
+        alt Role OPERATOR et fiche d'un autre auteur
+            Domaine-->>CatalogSvc: UnauthorizedProductActionException
+            CatalogSvc-->>CatalogCtrl: exception
+            CatalogCtrl-->>Navigateur: acces refuse
+        else Fiche visible : auteur, ou role VALIDATOR
+            Domaine-->>CatalogSvc: OK
+            CatalogSvc-->>CatalogCtrl: Product
+            CatalogCtrl->>CatalogSvc: history(id)
+            CatalogSvc->>Audit: findByProductIdOrderByOccurredAtDesc(id)
+            Audit->>BDD: SELECT ... FROM audit_entry WHERE product_id = ?
+            BDD-->>Audit: transitions : SUBMIT, VALIDATE, RETURN_TO_DRAFT
+            Audit-->>CatalogSvc: historique
+            CatalogSvc-->>CatalogCtrl: historique
+            CatalogCtrl->>CatalogCtrl: modifiable = (utilisateur courant == createdBy)
+            CatalogCtrl-->>Navigateur: detail complet de la fiche + historique des transitions
+        end
+    end
+```
+
+### 10.4 Traçabilité audit → spécifications (extrait, table complète : `SPECIFICATIONS.md` §13)
 
 | Constat d'audit | Couverture |
 |---|---|
@@ -501,11 +848,11 @@ stateDiagram-v2
 | ECO-2 Pas de pool de connexions | `ECO-10` |
 | ECO-3 Requêtes non bornées | `ECO-03/11/12`, `US-12/CA-4/CA-7` |
 
-### 10.4 Références
+### 10.5 Références
 
-- `Analyse/AUDIT.md` — audit technique et sécurité du legacy (28/07/2026)
-- `Datacom/SPECIFICATIONS.md` v2.2 — spécifications de la refonte (28/07/2026)
-- [`CONTRIBUTING.md`](../CONTRIBUTING.md) — workflow de contribution
-- [`ECO-17-mesures.md`](ECO-17-mesures.md) — mesures avant/après
-- [`ArchitectureTest.java`](../src/test/java/com/datacom/ArchitectureTest.java) — garde-fou d'architecture
+- `Analyse/AUDIT.md`, audit technique et sécurité du legacy (28/07/2026)
+- `Datacom/SPECIFICATIONS.md` v2.2, spécifications de la refonte (28/07/2026)
+- [`CONTRIBUTING.md`](../CONTRIBUTING.md), workflow de contribution
+- [`ECO-17-mesures.md`](ECO-17-mesures.md), mesures avant/après
+- [`ArchitectureTest.java`](../src/test/java/com/datacom/ArchitectureTest.java), garde-fou d'architecture
 - Dépôt : [github.com/Ryujin42/datacom](https://github.com/Ryujin42/datacom)

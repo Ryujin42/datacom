@@ -68,6 +68,7 @@ public class SecurityConfig {
                                                 "/login",
                                                 "/css/**",
                                                 "/img/**",
+                                                "/favicon.ico",
                                                 "/error",
                                                 "/actuator/health")
                                         .permitAll()

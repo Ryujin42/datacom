@@ -4,12 +4,14 @@ import com.datacom.user.domain.User;
 import com.datacom.user.infrastructure.UserPrincipal;
 import com.datacom.user.infrastructure.UserRepository;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.session.SessionInformation;
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 public class PasswordChangeService {
 
@@ -45,6 +47,7 @@ public class PasswordChangeService {
 
         user.changePassword(passwordEncoder.encode(newPassword));
         invalidateOtherSessions(new UserPrincipal(user), currentSessionId);
+        log.info("password changed for user {}, other sessions invalidated", userId);
     }
 
     private void invalidateOtherSessions(UserPrincipal principal, String currentSessionId) {
