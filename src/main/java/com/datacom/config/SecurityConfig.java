@@ -30,7 +30,6 @@ public class SecurityConfig {
         return new SessionRegistryImpl();
     }
 
-    /** Necessaire pour que SessionRegistry soit notifie quand une session HTTP expire. */
     @Bean
     public ServletListenerRegistrationBean<HttpSessionEventPublisher> httpSessionEventPublisher() {
         return new ServletListenerRegistrationBean<>(new HttpSessionEventPublisher());

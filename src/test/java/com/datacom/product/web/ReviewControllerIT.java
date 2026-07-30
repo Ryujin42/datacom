@@ -51,7 +51,6 @@ class ReviewControllerIT {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
     }
 
-    /** Une fiche deja soumise, prete a etre controlee. */
     private Long submittedFiche(String authorLogin, String reference) {
         Long author = userRepository.findByLogin(authorLogin).orElseThrow().getId();
         Product product = new Product(author);

@@ -22,19 +22,9 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/**
- * US-15/CA-2 : verifie, contre une vraie base, que chaque transition et l'entree d'audit qu'elle
- * genere sont ecrites dans la meme transaction (le journal est bien present a l'issue de l'appel,
- * pas seulement en memoire).
- */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("dev")
 @Testcontainers
-// Les deux roles a la fois : ces tests portent sur la transaction et le journal, pas sur
-// l'autorisation par role (SEC-02), couverte separement par ProductAuthorizationIT. Les donner tous
-// les deux isole ce qui est teste ici — et rend d'autant plus parlant le fait que RG-02 refuse
-// quand
-// meme l'auto-validation : le controle d'identite est bien distinct du controle de role.
 @WithMockUser(roles = {"OPERATOR", "VALIDATOR"})
 class ProductWorkflowServiceIT {
 
@@ -115,7 +105,6 @@ class ProductWorkflowServiceIT {
 
         Product product = productRepository.findById(productId).orElseThrow();
         assertThat(product.getStatus()).isEqualTo(ProductStatus.IN_REVIEW);
-        // Seule la soumission est journalisee : la tentative de validation refusee n'a rien ecrit.
         assertThat(auditEntryRepository.findByProductIdOrderByOccurredAtDesc(productId))
                 .extracting(AuditEntry::getAction)
                 .containsExactly(AuditAction.SUBMIT);

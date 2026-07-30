@@ -16,10 +16,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/**
- * Preuve que les contraintes portees par le schema (V1__init_schema.sql) sont reellement appliquees
- * par une base Postgres reelle, pas seulement supposees par le code Java (RG-07, RG-11).
- */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("dev")
 @Testcontainers

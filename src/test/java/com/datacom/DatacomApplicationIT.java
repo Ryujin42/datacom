@@ -14,14 +14,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/**
- * Boots the whole application against a real, ephemeral PostgreSQL 17 container and verifies that
- * the Flyway migration (V1__init_schema.sql) actually created the target schema — the L0 proof that
- * the socle works end to end, not just that the classes compile.
- *
- * <p>WebEnvironment.MOCK (not NONE): Spring Security's SecurityFilterChain bean needs a servlet
- * context to obtain its HttpSecurity bean, even though this test never issues an HTTP request.
- */
+
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @Testcontainers
 class DatacomApplicationIT {

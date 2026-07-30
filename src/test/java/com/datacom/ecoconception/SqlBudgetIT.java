@@ -64,22 +64,12 @@ class SqlBudgetIT {
         }
     }
 
-    /** Nombre de requetes SQL reellement executees pendant l'affichage de l'ecran. */
     private long queriesFor(String url) throws Exception {
         statistics.clear();
         mockMvc.perform(get(url)).andExpect(status().isOk());
         return statistics.getPrepareStatementCount();
     }
 
-    /**
-     * Mesure le meme ecran a deux volumes, tous deux <b>superieurs a une page</b>, et verifie que
-     * le compte tient le budget et ne bouge pas.
-     *
-     * <p>Les deux volumes depassent volontairement la taille d'une page : en deca, Spring Data
-     * economise la requete de comptage, si bien qu'un ecran passerait de 1 a 2 requetes pour une
-     * raison qui n'a rien d'un « N+1 ». Comparer deux mesures prises sur le meme chemin d'execution
-     * isole ce qu'on cherche vraiment — une requete supplementaire par ligne affichee.
-     */
     private void assertScreenIsVolumeIndependent(String url, String referencePrefix)
             throws Exception {
         createFiches("operator1", 25, referencePrefix + "A-");

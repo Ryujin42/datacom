@@ -19,13 +19,11 @@ class SearchTermTest {
         assertThat(SearchTerm.toLikePattern("a_b")).isEqualTo("%a\\_b%");
     }
 
-    /** L'antislash est echappe en premier, sans quoi il echapperait les echappements ajoutes. */
     @Test
     void escapesBackslashesBeforeTheWildcardsItWouldOtherwiseCorrupt() {
         assertThat(SearchTerm.toLikePattern("a\\%b")).isEqualTo("%a\\\\\\%b%");
     }
 
-    /** L'apostrophe n'a rien de special : la requete est parametree, jamais concatenee. */
     @Test
     void leavesQuotesUntouched() {
         assertThat(SearchTerm.toLikePattern("l'oreal")).isEqualTo("%l'oreal%");
