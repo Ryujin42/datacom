@@ -2,8 +2,7 @@ package com.datacom.common.web;
 
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.boot.webmvc.error.ErrorController;
 import org.springframework.http.HttpStatus;
@@ -17,10 +16,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
  * a status, a French message and, for 5xx, the correlation id already logged server-side
  * (US-17/CA-3).
  */
+@Slf4j
 @Controller
 public class GlobalErrorController implements ErrorController {
-
-    private static final Logger log = LoggerFactory.getLogger(GlobalErrorController.class);
 
     @RequestMapping("/error")
     public String handleError(HttpServletRequest request, Model model) {

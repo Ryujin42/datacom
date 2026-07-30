@@ -15,8 +15,9 @@ server:
         secure: true
 
 # ECO-13 : INFO en production, SQL desactive (il double le volume de journaux sans rien apporter
-# une fois l'application stabilisee), et rotation a 30 jours pour que les journaux ne croissent pas
-# indefiniment sur le disque.
+# une fois l'application stabilisee). La rotation (quotidienne/10 Mo, retention 30 jours) est
+# definie dans log4j2.properties ; "logging.file.name" ci-dessous ne fait qu'y injecter le chemin
+# via la propriete systeme LOG_FILE (mecanisme Spring Boot, valable quel que soit le moteur de logs).
 logging:
   level:
     root: INFO
@@ -25,9 +26,3 @@ logging:
     org.hibernate.orm.jdbc.bind: WARN
   file:
     name: /var/log/datacom/datacom.log
-  logback:
-    rollingpolicy:
-      file-name-pattern: /var/log/datacom/datacom-%d{yyyy-MM-dd}.%i.log.gz
-      max-history: 30
-      max-file-size: 10MB
-      total-size-cap: 500MB
