@@ -14,11 +14,15 @@ server:
       cookie:
         secure: true
 
+# Le chemin du fichier de log n'est PAS fixe ici : log4j2.properties porte le seul defaut
+# (logs/datacom.log, sous WORKDIR /app) commun aux deux profils, pour qu'aucun des deux n'utilise
+# un chemin que le Dockerfile n'a pas provisionne (repertoire cree + chown). Un deploiement reel qui
+# a besoin d'un autre chemin absolu le fixe via la variable d'environnement LOGGING_FILE_NAME
+# (traduite par Spring Boot en propriete systeme LOG_FILE, lue par log4j2.properties) — a condition
+# que ce chemin soit lui aussi cree et accessible en ecriture a l'utilisateur non-root du conteneur.
 logging:
   level:
     root: INFO
     com.datacom: INFO
     org.hibernate.SQL: WARN
     org.hibernate.orm.jdbc.bind: WARN
-  file:
-    name: /var/log/datacom/datacom.log
