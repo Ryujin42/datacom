@@ -27,15 +27,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/**
- * ECO-03 : au plus 3 requetes SQL par affichage, <b>independamment du volume</b>. C'est cette
- * derniere partie qui compte : chaque ecran est mesure a deux volumes, et le compte doit etre le
- * meme. Un « N+1 » tiendrait le budget sur un jeu de donnees minuscule et exploserait ensuite —
- * c'est exactement le defaut que l'audit reproche au legacy.
- *
- * <p>Le budget est verifie par un test, donc son depassement fait echouer la construction au meme
- * titre qu'une regression fonctionnelle : c'est ce que demande le §7.2 (« budgets contraignants »).
- */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("dev")
 @TestPropertySource(properties = "spring.jpa.properties.hibernate.generate_statistics=true")
@@ -73,22 +64,12 @@ class SqlBudgetIT {
         }
     }
 
-    /** Nombre de requetes SQL reellement executees pendant l'affichage de l'ecran. */
     private long queriesFor(String url) throws Exception {
         statistics.clear();
         mockMvc.perform(get(url)).andExpect(status().isOk());
         return statistics.getPrepareStatementCount();
     }
 
-    /**
-     * Mesure le meme ecran a deux volumes, tous deux <b>superieurs a une page</b>, et verifie que
-     * le compte tient le budget et ne bouge pas.
-     *
-     * <p>Les deux volumes depassent volontairement la taille d'une page : en deca, Spring Data
-     * economise la requete de comptage, si bien qu'un ecran passerait de 1 a 2 requetes pour une
-     * raison qui n'a rien d'un « N+1 ». Comparer deux mesures prises sur le meme chemin d'execution
-     * isole ce qu'on cherche vraiment — une requete supplementaire par ligne affichee.
-     */
     private void assertScreenIsVolumeIndependent(String url, String referencePrefix)
             throws Exception {
         createFiches("operator1", 25, referencePrefix + "A-");

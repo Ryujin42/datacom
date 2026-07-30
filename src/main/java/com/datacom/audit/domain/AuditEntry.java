@@ -12,10 +12,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
 
-/**
- * RG-17/RG-18, US-15. Entree immuable : aucune methode de modification n'est exposee ici, et {@link
- * com.datacom.audit.infrastructure.AuditEntryRepository} n'expose ni update ni delete (US-15/CA-3).
- */
 @Entity
 @Table(name = "audit_entry")
 public class AuditEntry {

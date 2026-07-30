@@ -13,17 +13,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Orchestre les transitions du cycle de vie d'une fiche (RG-04).
- *
- * <p>SEC-02 : le controle de role (RG-01) est porte ici, en couche service, et non par la
- * configuration des URL — une nouvelle route ou un appel interne qui oublierait la regle se heurte
- * quand meme a @PreAuthorize. L'identite de l'auteur (RG-02, RG-04) est une invariante du domaine,
- * verifiee par {@link Product} lui-meme : les deux controles sont distincts et testes separement.
- *
- * <p>US-15/CA-2 : chaque transition et l'entree d'audit qu'elle genere sont ecrites dans la meme
- * transaction.
- */
 @Service
 public class ProductWorkflowService {
 

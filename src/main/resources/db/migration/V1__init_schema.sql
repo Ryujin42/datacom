@@ -1,6 +1,3 @@
--- Schema cible defini en SPECIFICATIONS.md §10.
--- Aucune modification manuelle du schema : toute evolution passe par une nouvelle migration (TEC-05).
-
 CREATE TYPE product_status AS ENUM ('DRAFT', 'IN_REVIEW', 'VALIDATED');
 
 CREATE TABLE users
@@ -16,7 +13,6 @@ CREATE TABLE users
     locked_until    TIMESTAMPTZ,
     created_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
--- Comptes crees exclusivement par migration Flyway (D2) : aucun ecran de gestion en v1.
 
 CREATE TABLE products
 (
@@ -42,7 +38,6 @@ CREATE TABLE products
     version         BIGINT         NOT NULL DEFAULT 0
 );
 
--- RG-11 : unicite globale de la reference (aucun etat ne "libere" une reference)
 CREATE UNIQUE INDEX uq_products_reference
     ON products (reference) WHERE reference IS NOT NULL;
 

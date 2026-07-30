@@ -9,7 +9,6 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-/** Adapte {@link User} au contrat Spring Security ; le domaine ne connait pas UserDetails. */
 public class UserPrincipal implements UserDetails {
 
     private final User user;
@@ -69,9 +68,6 @@ public class UserPrincipal implements UserDetails {
         return user.isEnabled();
     }
 
-    // Identite basee sur le login : chaque connexion charge une instance distincte depuis la
-    // base, mais SessionRegistry doit reconnaitre qu'elles representent le meme utilisateur pour
-    // pouvoir retrouver toutes ses sessions (US-04/CA-3).
     @Override
     public boolean equals(Object other) {
         if (this == other) {

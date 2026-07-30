@@ -12,21 +12,14 @@ import jakarta.persistence.Version;
 import java.time.Instant;
 import java.util.regex.Pattern;
 
-/**
- * RG-03..18. Le statut et l'etape courante ne sont jamais recus du client (RG-06) : ils ne changent
- * qu'a travers {@link #submit}, {@link #validate}, {@link #returnToDraft} et {@link #moveToStep},
- * qui lisent et ecrivent l'etat porte par cette entite, elle-meme chargee depuis la base a chaque
- * requete.
- */
 @Entity
 @Table(name = "products")
 public class Product {
 
     private static final Pattern REFERENCE_FORMAT = Pattern.compile("^[A-Z0-9][A-Z0-9-]{2,31}$");
 
-    // RG-14. Les memes bornes qu'en base : refusees ici avant l'ecriture, avec un message rattache
-    // au champ, plutot que remontees comme une erreur technique par le pilote JDBC.
     public static final int MAX_NAME = 150;
+
     public static final int MAX_DESCRIPTION = 2000;
     public static final int MAX_CATEGORY = 80;
     public static final int MAX_SUBCATEGORY = 80;
@@ -85,9 +78,6 @@ public class Product {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
-    // RG-15 : horodatage UTC. Maintenu par l'entite a chaque changement plutot que par une
-    // annotation Hibernate (@UpdateTimestamp) ou un declencheur SQL : le domaine ne doit dependre
-    // ni du framework de persistance (TEC-01) ni d'un comportement invisible depuis le code.
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt = Instant.now();
 
@@ -101,9 +91,6 @@ public class Product {
     @Column(nullable = false)
     private long version;
 
-    // Colonne generee par la base (V6) : reference, nom et fabricant assembles, sans accents ni
-    // majuscules. Elle n'existe que pour porter l'index de recherche et n'est jamais lue ni ecrite
-    // par le code — d'ou l'absence d'accesseur. Les requetes de US-14 s'appuient dessus.
     @Column(name = "search_text", insertable = false, updatable = false)
     private String searchText;
 
@@ -115,7 +102,6 @@ public class Product {
         this.createdBy = createdBy;
     }
 
-    /** RG-08, etape 1. RG-12 : la reference est revalidee ici, avant toute persistance. */
     public void updateIdentification(String reference, String name, String description) {
         ensureEditable();
         if (reference != null
@@ -131,7 +117,6 @@ public class Product {
         touch();
     }
 
-    /** RG-08, etape 2. RG-13 : la valeur de {@code country} est revalidee cote serveur. */
     public void updateClassification(
             String category, String subcategory, String manufacturer, String country) {
         ensureEditable();
@@ -148,7 +133,6 @@ public class Product {
         touch();
     }
 
-    /** RG-08, etape 3. */
     public void updateTraceability(String lotNumber, String certification, String authorComment) {
         ensureEditable();
         ensureMaxLength(lotNumber, MAX_LOT_NUMBER, "lotNumber", "Numero de lot");
@@ -160,7 +144,6 @@ public class Product {
         touch();
     }
 
-    /** RG-09 : navigation libre entre les quatre etapes d'une fiche encore modifiable. */
     public void moveToStep(int step) {
         ensureEditable();
         if (step < 1 || step > 4) {
@@ -170,7 +153,6 @@ public class Product {
         touch();
     }
 
-    /** RG-08 : champs obligatoires des etapes 1 a 3. */
     public boolean isComplete() {
         return isNotBlank(reference)
                 && isNotBlank(name)
@@ -191,9 +173,6 @@ public class Product {
         }
     }
 
-    /**
-     * Appele par tout ce qui modifie la fiche, pour que RG-15 tienne sans dependre du framework.
-     */
     private void touch() {
         this.updatedAt = Instant.now();
     }
@@ -204,11 +183,6 @@ public class Product {
         }
     }
 
-    /**
-     * RG-01 : une fiche en brouillon n'est modifiable que par son auteur. Distinct de {@link
-     * #ensureEditable()}, qui ne regarde que l'etat : les deux refus ont des causes differentes et
-     * sont testes separement.
-     */
     public void ensureAuthoredBy(Long actingUserId) {
         if (!createdBy.equals(actingUserId)) {
             throw new UnauthorizedProductActionException(
@@ -216,7 +190,6 @@ public class Product {
         }
     }
 
-    /** RG-04 : DRAFT -> IN_REVIEW, par l'auteur, fiche complete (RG-08) uniquement. */
     public void submit(Long actingUserId, Instant now) {
         if (status != ProductStatus.DRAFT) {
             throw new InvalidProductTransitionException("soumettre", status);
@@ -233,7 +206,6 @@ public class Product {
         touch();
     }
 
-    /** RG-04/RG-02 : IN_REVIEW -> VALIDATED, par un utilisateur autre que l'auteur. */
     public void validate(Long actingUserId, Instant now) {
         if (status != ProductStatus.IN_REVIEW) {
             throw new InvalidProductTransitionException("valider", status);
@@ -248,7 +220,6 @@ public class Product {
         touch();
     }
 
-    /** RG-04/RG-02 : IN_REVIEW -> DRAFT, par un utilisateur autre que l'auteur. */
     public void returnToDraft(Long actingUserId) {
         if (status != ProductStatus.IN_REVIEW) {
             throw new InvalidProductTransitionException("renvoyer en brouillon", status);

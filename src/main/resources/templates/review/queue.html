@@ -31,14 +31,12 @@
             <td th:text="${f.name}">Nom</td>
             <td th:text="${f.manufacturer}">Fabricant</td>
             <td th:text="${f.author}">Auteur</td>
-            <!-- RG-15 : horodatage stocke en UTC, affiche dans le fuseau du serveur. -->
             <td th:text="${#temporals.format(f.submittedAt, 'dd/MM/yyyy HH:mm')}">Date</td>
             <td><a th:href="@{'/controle/' + ${f.id}}">Contrôler</a></td>
         </tr>
         </tbody>
     </table>
 
-    <!-- ECO-11 : liste bornee a 20 par page, jamais de requete non bornee. -->
     <nav aria-label="Pagination" th:if="${fiches.totalPages > 1}">
         <p>
             Page <span th:text="${fiches.number + 1}">1</span>

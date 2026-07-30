@@ -16,15 +16,10 @@ import org.springframework.security.web.authentication.AuthenticationFailureHand
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
 
-/**
- * RG-19..RG-24, SEC-02/04/05/07/09/10. Configuration explicite (Spring Boot 4 n'active plus de
- * defauts implicites) plutot que de dependre de comportements par convention.
- */
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    /** RG-20 : bcrypt, cout >= 12. */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(12);
@@ -35,29 +30,17 @@ public class SecurityConfig {
         return new SessionRegistryImpl();
     }
 
-    /** Necessaire pour que SessionRegistry soit notifie quand une session HTTP expire. */
     @Bean
     public ServletListenerRegistrationBean<HttpSessionEventPublisher> httpSessionEventPublisher() {
         return new ServletListenerRegistrationBean<>(new HttpSessionEventPublisher());
     }
 
-    /**
-     * RG-22/CA-6 : le meme message generique s'affiche quel que soit le motif de l'echec
-     * (identifiant inconnu, mot de passe errone, compte verrouille ou desactive) - aucune
-     * distinction ne doit fuiter vers le client.
-     */
     @Bean
     public AuthenticationFailureHandler genericAuthenticationFailureHandler() {
         return (request, response, exception) ->
                 response.sendRedirect(request.getContextPath() + "/login?error");
     }
 
-    /**
-     * SEC-06/SEC-09. Spring Security pose deja X-Content-Type-Options, X-Frame-Options et HSTS par
-     * defaut ; la CSP et Referrer-Policy, non. La politique est restrictive par construction :
-     * l'application n'a ni JavaScript, ni style en ligne, ni ressource externe, donc {@code 'self'}
-     * suffit et tout le reste est refuse.
-     */
     private static void hardenResponseHeaders(HeadersConfigurer<HttpSecurity> headers) {
         headers.contentSecurityPolicy(
                         csp ->
@@ -105,20 +88,15 @@ public class SecurityConfig {
                                         .deleteCookies("JSESSIONID")
                                         .permitAll())
                 .headers(SecurityConfig::hardenResponseHeaders)
-                .sessionManagement(
-                        session ->
-                                session.sessionFixation(
-                                                SessionManagementConfigurer
-                                                                .SessionFixationConfigurer
-                                                        ::migrateSession)
-                                        // -1 = pas de limite de sessions concurrentes ; on veut
-                                        // seulement les
-                                        // suivre via le registre pour pouvoir les invalider
-                                        // explicitement
-                                        // depuis US-04 (changement de mot de passe).
-                                        .maximumSessions(-1)
-                                        .sessionRegistry(sessionRegistry()));
+                .sessionManagement(this::configureSessionManagement);
 
         return http.build();
+    }
+
+    private void configureSessionManagement(SessionManagementConfigurer<HttpSecurity> session) {
+        session.sessionFixation(
+                        SessionManagementConfigurer.SessionFixationConfigurer::migrateSession)
+                .maximumSessions(-1)
+                .sessionRegistry(sessionRegistry());
     }
 }

@@ -31,11 +31,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/**
- * US-09 a US-11 de bout en bout. Les trois scenarios Gherkin de la specification sont couverts tels
- * quels : un OPERATOR qui tente de valider, un VALIDATOR qui tente de valider sa propre fiche, et
- * un renvoi commente jusqu'a sa lecture par l'auteur.
- */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("dev")
 @Testcontainers
@@ -56,7 +51,6 @@ class ReviewControllerIT {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
     }
 
-    /** Une fiche deja soumise, prete a etre controlee. */
     private Long submittedFiche(String authorLogin, String reference) {
         Long author = userRepository.findByLogin(authorLogin).orElseThrow().getId();
         Product product = new Product(author);
@@ -72,7 +66,6 @@ class ReviewControllerIT {
         return productRepository.findById(id).orElseThrow();
     }
 
-    /** US-09 CA-1/CA-2 : la file liste les fiches en controle avec leurs colonnes attendues. */
     @Test
     @WithUserDetails("validator1")
     void theQueueListsFichesAwaitingReviewWithTheirAuthor() throws Exception {
@@ -85,14 +78,12 @@ class ReviewControllerIT {
                 .andExpect(content().string(containsString("Jean Dupont")));
     }
 
-    /** US-09 CA-4 : un OPERATOR n'accede pas a l'ecran de controle. */
     @Test
     @WithUserDetails("operator1")
     void anOperatorCannotOpenTheReviewQueue() throws Exception {
         mockMvc.perform(get("/controle")).andExpect(status().isForbidden());
     }
 
-    /** US-10 CA-1 : le detail presente les donnees avant decision. */
     @Test
     @WithUserDetails("validator1")
     void theDetailScreenShowsTheDataBeforeAnyDecision() throws Exception {
@@ -104,7 +95,6 @@ class ReviewControllerIT {
                 .andExpect(content().string(containsString("Valider définitivement")));
     }
 
-    /** US-10 CA-2/CA-3/CA-7 : validation, etat terminal, entree d'audit nominative. */
     @Test
     @WithUserDetails("validator1")
     void validatingMovesTheFicheToValidatedAndRecordsWhoDecided() throws Exception {
@@ -128,10 +118,6 @@ class ReviewControllerIT {
         assertThat(entry.getOccurredAt()).isNotNull();
     }
 
-    /**
-     * Scenario Gherkin « un operateur ne peut pas valider une fiche » : la reponse est 403 et la
-     * fiche reste en IN_REVIEW (corrige CRIT-3).
-     */
     @Test
     @WithUserDetails("operator1")
     void anOperatorSendingAValidationRequestGetsForbiddenAndTheFicheIsUntouched() throws Exception {
@@ -143,11 +129,6 @@ class ReviewControllerIT {
         assertThat(reload(id).getStatus()).isEqualTo(ProductStatus.IN_REVIEW);
     }
 
-    /**
-     * Scenario Gherkin « separation des taches » : un VALIDATOR auteur de la fiche se voit refuser
-     * la validation avec un message qui en donne le motif — il a le droit d'etre la, c'est cette
-     * decision precise qui lui est interdite (RG-02).
-     */
     @Test
     @WithUserDetails("validator1")
     void aValidatorCannotValidateAFicheHeAuthoredAndIsToldWhy() throws Exception {
@@ -161,7 +142,6 @@ class ReviewControllerIT {
         assertThat(auditEntryRepository.findByProductIdOrderByOccurredAtDesc(id)).isEmpty();
     }
 
-    /** US-10 CA-6/RG-04 : une fiche deja validee ne peut plus etre validee. */
     @Test
     @WithUserDetails("validator1")
     void aFicheThatIsNotInReviewCannotBeValidated() throws Exception {
@@ -174,11 +154,6 @@ class ReviewControllerIT {
                 .andExpect(content().string(containsString("Impossible de valider")));
     }
 
-    /**
-     * Scenario Gherkin « renvoi en brouillon » : la fiche repasse en DRAFT a l'etape ou elle avait
-     * ete soumise (US-11 CA-3), une entree d'audit est creee, et le commentaire est lisible par
-     * l'auteur quand il rouvre sa fiche (US-11 CA-2).
-     */
     @Test
     @WithUserDetails("validator1")
     void returningAFicheToDraftKeepsItsStepAndRecordsTheComment() throws Exception {
@@ -200,7 +175,6 @@ class ReviewControllerIT {
         assertThat(entry.getComment()).isEqualTo("Certification a preciser.");
     }
 
-    /** US-11 CA-4 : un OPERATOR ne renvoie pas une fiche en brouillon. */
     @Test
     @WithUserDetails("operator1")
     void anOperatorCannotReturnAFicheToDraft() throws Exception {
@@ -212,7 +186,6 @@ class ReviewControllerIT {
         assertThat(reload(id).getStatus()).isEqualTo(ProductStatus.IN_REVIEW);
     }
 
-    /** US-11 CA-5/RG-02 : un VALIDATOR ne renvoie pas sa propre fiche. */
     @Test
     @WithUserDetails("validator1")
     void aValidatorCannotReturnAFicheHeAuthored() throws Exception {
@@ -225,7 +198,6 @@ class ReviewControllerIT {
         assertThat(reload(id).getStatus()).isEqualTo(ProductStatus.IN_REVIEW);
     }
 
-    /** SEC-04 : aucune decision sans jeton CSRF. */
     @Test
     @WithUserDetails("validator1")
     void aDecisionWithoutCsrfTokenIsRejected() throws Exception {

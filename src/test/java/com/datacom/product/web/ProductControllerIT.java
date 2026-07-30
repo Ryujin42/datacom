@@ -29,10 +29,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/**
- * US-05 a US-08 de bout en bout, contre une vraie base : chaque test part d'une requete HTTP, comme
- * un utilisateur — ou comme un attaquant qui forge la requete sans passer par l'ecran.
- */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("dev")
 @Testcontainers
@@ -46,15 +42,11 @@ class ProductControllerIT {
 
     private MockMvc mockMvc;
 
-    // MockMvc est construit explicitement avec springSecurity() : sans ce configurateur, la chaine
-    // de filtres s'applique mais le contexte pose par @WithUserDetails n'est jamais transmis a la
-    // requete, et tout part en redirection vers /login.
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
     }
 
-    /** Cree une fiche par l'IHM et rend son identifiant. */
     private Long createFiche() throws Exception {
         MvcResult result =
                 mockMvc.perform(post("/fiches").with(csrf()))
@@ -80,21 +72,18 @@ class ProductControllerIT {
         assertThat(product.getCreatedBy()).isNotNull();
     }
 
-    /** US-05 CA-4 : deux creations concurrentes produisent deux fiches distinctes (corrige B2). */
     @Test
     @WithUserDetails("operator1")
     void twoCreationsProduceTwoDistinctFiches() throws Exception {
         assertThat(createFiche()).isNotEqualTo(createFiche());
     }
 
-    /** US-05 CA-5 : un VALIDATOR ne cree pas de fiche. */
     @Test
     @WithUserDetails("validator1")
     void aValidatorCannotCreateAFiche() throws Exception {
         mockMvc.perform(post("/fiches").with(csrf())).andExpect(status().isForbidden());
     }
 
-    /** US-06 CA-3/CA-6 : « Suivant » enregistre, et n'ecrase pas les champs des autres etapes. */
     @Test
     @WithUserDetails("operator1")
     void savingAStepKeepsTheOtherStepsIntact() throws Exception {
@@ -127,7 +116,6 @@ class ProductControllerIT {
         assertThat(product.getCurrentStep()).isEqualTo((short) 3);
     }
 
-    /** US-06 CA-5 : un champ vide s'affiche vide, jamais « null » (corrige B5). */
     @Test
     @WithUserDetails("operator1")
     void emptyFieldsAreNeverRenderedAsTheStringNull() throws Exception {
@@ -138,7 +126,6 @@ class ProductControllerIT {
                 .andExpect(content().string(not(containsString("null"))));
     }
 
-    /** US-06 CA-8/RG-07 : une version perimee est refusee, avec un message explicite. */
     @Test
     @WithUserDetails("operator1")
     void aStaleVersionIsRejectedWithAConflictMessage() throws Exception {
@@ -150,7 +137,6 @@ class ProductControllerIT {
                                 .param("reference", "REF-901"))
                 .andExpect(status().is3xxRedirection());
 
-        // Seconde ecriture avec la version telle qu'a l'ouverture initiale : perimee.
         mockMvc.perform(
                         post("/fiches/" + id + "/etape/1")
                                 .with(csrf())
@@ -162,7 +148,6 @@ class ProductControllerIT {
         assertThat(reload(id).getReference()).isEqualTo("REF-901");
     }
 
-    /** US-07 CA-2 : format de reference invalide refuse, avec rappel du format. */
     @Test
     @WithUserDetails("operator1")
     void anInvalidReferenceFormatIsRejectedAndTheTypedValueIsKept() throws Exception {
@@ -176,13 +161,11 @@ class ProductControllerIT {
                                 .param("name", "Casque"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Reference invalide")))
-                // US-07 CA-6 : la saisie de l'utilisateur est conservee a l'ecran.
                 .andExpect(content().string(containsString("ref minuscule")));
 
         assertThat(reload(id).getReference()).isNull();
     }
 
-    /** US-07 CA-5/SEC-03 : un pays hors liste envoye directement en requete est refuse. */
     @Test
     @WithUserDetails("operator1")
     void aForgedCountryOutsideTheClosedListIsRejectedServerSide() throws Exception {
@@ -201,7 +184,6 @@ class ProductControllerIT {
         assertThat(reload(id).getCountry()).isNull();
     }
 
-    /** US-07 CA-4/SEC-03 : un depassement de longueur est refuse, sans troncature silencieuse. */
     @Test
     @WithUserDetails("operator1")
     void aForgedOversizedValueIsRejectedWithoutSilentTruncation() throws Exception {
@@ -219,10 +201,6 @@ class ProductControllerIT {
         assertThat(reload(id).getName()).isNull();
     }
 
-    /**
-     * SEC-06 : un script stocke dans un champ texte ressort echappe, jamais executable. La CSP
-     * (script-src 'none') constitue la seconde barriere, verifiee par AuthenticationSecurityIT.
-     */
     @Test
     @WithUserDetails("operator1")
     void aStoredScriptIsEscapedOnOutput() throws Exception {

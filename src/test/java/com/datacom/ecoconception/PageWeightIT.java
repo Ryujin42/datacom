@@ -26,17 +26,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/**
- * ECO-01/02/04 : budgets de poids, verifies par un test pour qu'un depassement fasse echouer la
- * construction plutot que d'etre constate trop tard (§7.2, « budgets contraignants »).
- *
- * <p>Ce que ce test mesure exactement : le HTML produit, la feuille de style et les images, soit
- * l'integralite de ce qu'un navigateur telecharge — l'application ne sert aucun JavaScript et
- * n'appelle aucune ressource externe. La compression HTTP (ECO-07) n'est pas prise en compte : les
- * chiffres obtenus sont donc majorants, ce qui va dans le sens de la garantie.
- *
- * <p>Reference a battre, relevee sur le legacy (§7.2) : accueil 8,3 Mo, pages internes 2,0 Mo.
- */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("dev")
 @Testcontainers
@@ -60,10 +49,6 @@ class PageWeightIT {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
     }
 
-    /**
-     * Une page pleine : 20 lignes, soit le maximum qu'un ecran affiche (ECO-11). Le prefixe rend
-     * les references uniques d'un test a l'autre — la base est partagee au sein de la classe.
-     */
     private void fillAPage(String referencePrefix) {
         Long author = userRepository.findByLogin("operator1").orElseThrow().getId();
         for (int i = 0; i < 20; i++) {
@@ -94,7 +79,6 @@ class PageWeightIT {
         }
     }
 
-    /** ECO-04 : poids total des images. */
     @Test
     void imagesStayWithinTheirBudget() throws Exception {
         int total =
@@ -103,10 +87,6 @@ class PageWeightIT {
         assertThat(total).isLessThanOrEqualTo(IMAGES_BUDGET_BYTES);
     }
 
-    /**
-     * ECO-01 : premiere visite, tout compris — le WebP seul est telecharge, le PNG n'etant qu'un
-     * repli pour les navigateurs qui ne gerent pas WebP.
-     */
     @Test
     @WithUserDetails("validator1")
     void everyScreenStaysWithinTheFirstVisitBudget() throws Exception {
@@ -120,10 +100,6 @@ class PageWeightIT {
         }
     }
 
-    /**
-     * ECO-02 : visite suivante. Les ressources statiques sont servies avec une empreinte dans leur
-     * nom et un cache d'un an (ECO-08), donc seule la page elle-meme repasse sur le reseau.
-     */
     @Test
     @WithUserDetails("validator1")
     void everyScreenStaysWithinTheCachedVisitBudget() throws Exception {

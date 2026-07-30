@@ -13,10 +13,6 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StreamUtils;
 
-/**
- * RG-21 : 12 caracteres minimum, comparaison avec une liste de mots de passe courants. Pas
- * d'expiration forcee (RG-21 l'exclut explicitement, donc aucune verification d'age ici).
- */
 @Component
 public class PasswordPolicy {
 
@@ -29,10 +25,6 @@ public class PasswordPolicy {
         this.commonPasswords = loadCommonPasswords();
     }
 
-    /**
-     * Retourne les violations en francais ; une liste vide signifie que le mot de passe est
-     * accepte.
-     */
     public List<String> validate(String candidate) {
         List<String> violations = new ArrayList<>();
         if (candidate == null || candidate.length() < MIN_LENGTH) {

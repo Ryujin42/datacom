@@ -10,11 +10,6 @@ import org.springframework.security.authentication.event.AuthenticationSuccessEv
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * RG-22 : suit les echecs d'authentification par compte, independamment de la couche web. Un
- * identifiant inconnu ne correspond a aucun {@link User} : rien n'est mis a jour, ce qui est
- * correct (et evite un canal lateral revelant l'existence du compte).
- */
 @Component
 public class AuthenticationEventListener {
 

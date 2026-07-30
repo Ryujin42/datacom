@@ -16,14 +16,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-/**
- * US-05 a US-08. Toute ecriture passe par POST (US-05 CA-1, corrige B6 : le legacy creait une fiche
- * sur une simple navigation) et beneficie donc de la protection CSRF (SEC-04).
- *
- * <p>Ce controleur ne decide de rien : il traduit une requete en appel de service et une exception
- * metier en message a l'ecran. L'autorisation vit dans les services (SEC-02) et les regles de
- * validite dans le domaine (SEC-03).
- */
 @Controller
 @RequestMapping("/fiches")
 public class ProductController {
@@ -72,11 +64,6 @@ public class ProductController {
         return "redirect:/fiches/" + id + "/etape/" + target;
     }
 
-    /**
-     * La soumission ne transporte aucun champ : elle agit sur l'etat serveur de la fiche, jamais
-     * sur des donnees venues du client (RG-06). En cas de refus, l'ecran est reaffiche tel
-     * qu'enregistre.
-     */
     @PostMapping("/{id}/soumettre")
     public String submit(
             @PathVariable Long id, @AuthenticationPrincipal UserPrincipal principal, Model model) {
@@ -119,17 +106,11 @@ public class ProductController {
                             version,
                             new ProductStepData.Traceability(
                                     form.lotNumber(), form.certification(), form.authorComment()));
-            case 4 -> {
-                // Recapitulatif : lecture seule (RG-08), rien a enregistrer.
-            }
+            case 4 -> {}
             default -> throw new IllegalArgumentException("Etape invalide : " + step);
         }
     }
 
-    /**
-     * US-07 CA-6 : apres une erreur, l'ecran est reaffiche avec les valeurs que l'utilisateur
-     * venait de saisir, pas avec celles restees en base — sinon sa frappe serait perdue.
-     */
     private String renderWithError(
             Long id,
             Long userId,
@@ -147,7 +128,6 @@ public class ProductController {
         model.addAttribute("fiche", form);
         model.addAttribute("step", step);
         model.addAttribute("countries", Countries.all());
-        // US-11 CA-2 : si la fiche revient d'un renvoi commente, l'auteur doit lire le motif.
         model.addAttribute("returnComment", editService.lastReturnComment(form.id()).orElse(null));
     }
 }

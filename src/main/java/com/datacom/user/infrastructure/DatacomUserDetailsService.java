@@ -21,7 +21,6 @@ public class DatacomUserDetailsService implements UserDetailsService {
         return userRepository
                 .findByLogin(login)
                 .map(UserPrincipal::new)
-                // Message generique : ne jamais confirmer qu'un identifiant existe (RG-22, SEC-01).
                 .orElseThrow(
                         () ->
                                 new UsernameNotFoundException(

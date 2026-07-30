@@ -23,11 +23,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/**
- * Un test par vulnerabilite de l'audit corrigee dans ce lot (QUA-02) : chacun echouerait sur le
- * code legacy (LoginServlet concatene le SQL, la deconnexion est en GET, aucune limite de
- * tentatives) et passe sur la refonte.
- */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
 @ActiveProfiles("dev") // charge les comptes de demo (db/migration/dev, V3)
@@ -39,7 +34,6 @@ class AuthenticationSecurityIT {
 
     @Autowired private MockMvc mockMvc;
 
-    /** Corrige CRIT-1 : admin' -- echoue exactement comme n'importe quel identifiant inconnu. */
     @Test
     void sqlInjectionInLoginFieldFailsLikeAnyUnknownCredential() throws Exception {
         mockMvc.perform(
@@ -51,10 +45,6 @@ class AuthenticationSecurityIT {
                 .andExpect(redirectedUrl("/login?error"));
     }
 
-    /**
-     * RG-22/CA-2/CA-6 : meme message, qu'il s'agisse d'un identifiant inconnu ou d'un mauvais mot
-     * de passe.
-     */
     @Test
     void unknownAndWrongPasswordProduceTheIdenticalGenericMessage() throws Exception {
         mockMvc.perform(get("/login").param("error", "true"))
@@ -63,15 +53,11 @@ class AuthenticationSecurityIT {
                         content().string(containsString("Identifiant ou mot de passe incorrect")));
     }
 
-    /**
-     * Corrige ELEV-2 : la deconnexion legacy etait en GET, declenchable par une simple balise img.
-     */
     @Test
     void logoutWithoutCsrfTokenIsRejected() throws Exception {
         mockMvc.perform(post("/logout")).andExpect(status().isForbidden());
     }
 
-    /** Toute page protegee redirige vers la connexion pour un visiteur anonyme. */
     @Test
     void unauthenticatedRequestToAProtectedPageRedirectsToLogin() throws Exception {
         mockMvc.perform(get("/"))
@@ -79,7 +65,6 @@ class AuthenticationSecurityIT {
                 .andExpect(redirectedUrl("/login"));
     }
 
-    /** SEC-05 : l'identifiant de session change apres une connexion reussie. */
     @Test
     void sessionIdChangesAfterSuccessfulLogin() throws Exception {
         MockHttpSession sessionBeforeLogin = new MockHttpSession();
@@ -100,10 +85,6 @@ class AuthenticationSecurityIT {
                 .isNotEqualTo(idBeforeLogin);
     }
 
-    /**
-     * SEC-06/SEC-09 : en-tetes de durcissement presents sur une reponse ordinaire. La CSP interdit
-     * tout script, ce qui neutralise un XSS stocke meme si un echappement venait a manquer.
-     */
     @Test
     void hardeningHeadersArePresentOnEveryResponse() throws Exception {
         mockMvc.perform(get("/login"))
@@ -125,7 +106,6 @@ class AuthenticationSecurityIT {
                 .andExpect(header().string("X-Frame-Options", "DENY"));
     }
 
-    /** RG-22 : verrouillage apres 5 echecs sur le meme compte. */
     @Test
     void accountLocksAfterFiveFailedAttempts() throws Exception {
         for (int i = 0; i < 5; i++) {

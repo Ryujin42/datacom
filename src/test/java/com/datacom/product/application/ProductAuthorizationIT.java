@@ -17,12 +17,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/**
- * SEC-02 : l'autorisation est refusee par defaut et portee par la couche service. Chaque methode
- * est appelee directement, sans passer par une URL : ce qui protege l'action n'est pas la
- * configuration des routes mais l'annotation sur le service, donc une future route qui oublierait
- * la regle reste bloquee.
- */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("dev")
 @Testcontainers
@@ -69,12 +63,6 @@ class ProductAuthorizationIT {
                 .isInstanceOf(AccessDeniedException.class);
     }
 
-    /**
-     * Sans aucun contexte d'authentification, le refus est signale par
-     * AuthenticationCredentialsNotFoundException et non AccessDeniedException : la distinction n'a
-     * pas d'importance ici, seul compte le fait que l'appel n'aboutit pas — c'est le « refuse par
-     * defaut » de SEC-02.
-     */
     @Test
     void anAnonymousCallerIsDeniedByDefault() {
         Long productId = saveDraft("REF-703");

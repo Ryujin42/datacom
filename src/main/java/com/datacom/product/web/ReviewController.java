@@ -15,16 +15,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-/**
- * US-09 a US-11 : le poste de travail du responsable conformite.
- *
- * <p>Un OPERATOR n'atteint aucune de ces pages : le refus vient de {@link ProductReviewService} et
- * de {@link ProductWorkflowService}, pas d'une regle d'URL (SEC-02, corrige CRIT-3).
- *
- * <p>Deux refus differents, deux traitements differents : un mauvais role donne un 403, alors qu'un
- * refus de separation des taches (RG-02) reaffiche la fiche avec le motif — le controleur a bien le
- * droit d'etre la, c'est cette decision precise qui lui est interdite.
- */
 @Controller
 @RequestMapping("/controle")
 public class ReviewController {

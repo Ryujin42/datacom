@@ -1,6 +1,5 @@
 package com.datacom.product.domain;
 
-/** RG-05 : seule une fiche DRAFT est modifiable. */
 public class ProductNotEditableException extends ProductInputException {
 
     public ProductNotEditableException(ProductStatus currentStatus) {
