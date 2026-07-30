@@ -1,10 +1,5 @@
 package com.datacom.product.web;
 
-/**
- * US-07 CA-6 : apres un refus, l'ecran doit reafficher ce que l'utilisateur venait de taper. Seuls
- * les champs de l'etape soumise sont remplaces ; les autres gardent la valeur enregistree, puisque
- * l'etape en cours est la seule que l'utilisateur ait pu modifier.
- */
 final class SubmittedValues {
 
     private SubmittedValues() {}

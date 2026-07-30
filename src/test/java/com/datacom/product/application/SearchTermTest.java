@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 
 class SearchTermTest {
 
-    /** US-14 CA-2 : casse et accents ignores. */
     @Test
     void lowercasesAndStripsAccents() {
         assertThat(SearchTerm.toLikePattern("Crème")).isEqualTo("%creme%");
@@ -14,7 +13,6 @@ class SearchTermTest {
         assertThat(SearchTerm.toLikePattern("  Fabricant  ")).isEqualTo("%fabricant%");
     }
 
-    /** US-14 CA-4/SEC-01 : les jokers de LIKE sont echappes, donc traites litteralement. */
     @Test
     void escapesLikeWildcardsSoTheyAreMatchedLiterally() {
         assertThat(SearchTerm.toLikePattern("100%")).isEqualTo("%100\\%%");

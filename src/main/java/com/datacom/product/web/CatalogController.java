@@ -14,13 +14,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-/**
- * US-12 a US-14 : consultation, detail et recherche.
- *
- * <p>La portee (ses fiches / toutes les fiches) est calculee a partir du role porte par la session
- * et transmise au service, qui l'applique. Rien dans l'URL ne permet de l'elargir — c'est ce qui
- * corrige ELEV-4, ou il suffisait de changer un identifiant pour lire la fiche d'un autre.
- */
 @Controller
 @RequestMapping("/fiches")
 public class CatalogController {
@@ -48,7 +41,6 @@ public class CatalogController {
         return "product/list";
     }
 
-    /** US-14, reserve au VALIDATOR : le service refuse tout autre role (SEC-02). */
     @GetMapping("/recherche")
     public String search(
             @RequestParam(defaultValue = "") String terme,

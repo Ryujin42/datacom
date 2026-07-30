@@ -7,10 +7,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
-/**
- * US-18 : identite, role, et les seules actions qui ont un sens pour ce role, avec leur decompte.
- * Le decompte passe par un {@code count} en base, jamais par le chargement de la liste (ECO-03).
- */
 @Controller
 public class HomeController {
 

@@ -51,7 +51,6 @@ class ProductTest {
                 .isInstanceOf(InvalidReferenceFormatException.class);
     }
 
-    /** RG-15/US-12 CA-2 : la date de mise a jour suit reellement les modifications. */
     @Test
     void everyModificationMovesTheUpdatedAtTimestamp() throws InterruptedException {
         Product product = new Product(AUTHOR);

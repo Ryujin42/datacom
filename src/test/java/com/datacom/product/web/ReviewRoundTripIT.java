@@ -34,13 +34,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/**
- * Le cycle de vie complet, vu des deux roles : l'auteur soumet, le controleur renvoie avec un
- * motif, l'auteur lit ce motif et corrige, le controleur valide. C'est le seul test qui traverse
- * DRAFT -> IN_REVIEW -> DRAFT -> IN_REVIEW -> VALIDATED, et il verifie que le journal en garde une
- * trace ordonnee et complete (RG-18 : « qui a decide du sort de ce produit, quand, et sur quelle
- * base ? »).
- */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("dev")
 @Testcontainers
@@ -129,19 +122,11 @@ class ReviewRoundTripIT {
                 .andExpect(status().is3xxRedirection());
     }
 
-    /**
-     * Chaque etape du parcours agit sous une identite differente, ce qu'une annotation posee sur la
-     * methode de test ne permet pas d'exprimer. Les comptes sont charges par le vrai
-     * UserDetailsService : les controleurs recoivent ainsi un UserPrincipal authentique, avec son
-     * identifiant en base — un utilisateur simule generique n'en aurait pas, et RG-02 comme la
-     * verification d'auteur porteraient sur du vide.
-     */
     private RequestPostProcessor as(String login) {
         return SecurityMockMvcRequestPostProcessors.user(
                 userDetailsService.loadUserByUsername(login));
     }
 
-    /** ECO-11 : la taille de page est bornee, et cette borne est explicite. */
     @Test
     @WithUserDetails("validator1")
     void theQueueIsBoundedToTwentyPerPage() throws Exception {

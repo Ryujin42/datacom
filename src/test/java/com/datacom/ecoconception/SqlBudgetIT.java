@@ -27,15 +27,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/**
- * ECO-03 : au plus 3 requetes SQL par affichage, <b>independamment du volume</b>. C'est cette
- * derniere partie qui compte : chaque ecran est mesure a deux volumes, et le compte doit etre le
- * meme. Un « N+1 » tiendrait le budget sur un jeu de donnees minuscule et exploserait ensuite —
- * c'est exactement le defaut que l'audit reproche au legacy.
- *
- * <p>Le budget est verifie par un test, donc son depassement fait echouer la construction au meme
- * titre qu'une regression fonctionnelle : c'est ce que demande le §7.2 (« budgets contraignants »).
- */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("dev")
 @TestPropertySource(properties = "spring.jpa.properties.hibernate.generate_statistics=true")

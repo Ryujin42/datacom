@@ -11,7 +11,6 @@
 
     <p>Ce journal ne présente que les décisions que vous avez prises.</p>
 
-    <!-- US-16 CA-2 : filtres par fiche et par periode. -->
     <form method="get" th:action="@{/journal}">
         <div class="form-field">
             <label for="fiche">Fiche (identifiant)</label>
@@ -30,7 +29,6 @@
 
     <p th:if="${entrees.isEmpty()}">Aucune décision ne correspond à ces critères.</p>
 
-    <!-- US-16 CA-3 : du plus recent au plus ancien. -->
     <table th:unless="${entrees.isEmpty()}">
         <caption>Décisions, de la plus récente à la plus ancienne</caption>
         <thead>

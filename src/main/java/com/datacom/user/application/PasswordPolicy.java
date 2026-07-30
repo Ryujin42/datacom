@@ -13,10 +13,6 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StreamUtils;
 
-/**
- * RG-21 : 12 caracteres minimum, comparaison avec une liste de mots de passe courants. Pas
- * d'expiration forcee (RG-21 l'exclut explicitement, donc aucune verification d'age ici).
- */
 @Component
 public class PasswordPolicy {
 

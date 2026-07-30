@@ -1,11 +1,10 @@
 -- Comptes de demonstration, uniquement charges quand le profil dev active ce dossier en plus
 -- de db/migration (voir application-dev.yml, spring.flyway.locations). Jamais joue en
--- production : D2 (SPECIFICATIONS.md S0) veut des comptes crees par migration, pas par un
--- ecran, mais pas des identifiants de demo publics dans l'environnement reel.
+-- production.
 --
 -- operator1 / OperatorPass123!
 -- validator1 / ValidatorPass123!
--- Hache avec BCrypt cout 12 (RG-20).
+-- Hache avec BCrypt cout 12.
 
 INSERT INTO users (login, password_hash, firstname, lastname, role)
 VALUES

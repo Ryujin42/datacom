@@ -1,6 +1,5 @@
 package com.datacom.product.domain;
 
-/** RG-14/US-07 CA-4 : un depassement est refuse avant enregistrement, jamais tronque en silence. */
 public class FieldTooLongException extends ProductInputException {
 
     private final String field;
@@ -10,7 +9,6 @@ public class FieldTooLongException extends ProductInputException {
         this.field = field;
     }
 
-    /** Nom technique du champ, pour rattacher le message au bon controle a l'ecran (ERG-05). */
     public String getField() {
         return field;
     }

@@ -26,7 +26,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/** US-12 a US-14 : consultation, detail, recherche — et les cloisonnements qui vont avec. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("dev")
 @Testcontainers
@@ -54,7 +53,6 @@ class CatalogControllerIT {
         return productRepository.save(product).getId();
     }
 
-    /** US-12 CA-1, correction de ELEV-4 : un OPERATOR ne voit que ses fiches dans la liste. */
     @Test
     @WithUserDetails("operator1")
     void anOperatorOnlySeesHisOwnFichesInTheList() throws Exception {
@@ -67,7 +65,6 @@ class CatalogControllerIT {
                 .andExpect(content().string(not(containsString("REF-801"))));
     }
 
-    /** US-12 CA-1 : un VALIDATOR voit toutes les fiches. */
     @Test
     @WithUserDetails("validator1")
     void aValidatorSeesEveryFiche() throws Exception {
@@ -80,10 +77,6 @@ class CatalogControllerIT {
                 .andExpect(content().string(containsString("REF-803")));
     }
 
-    /**
-     * US-13 CA-2, correction de ELEV-4 : le cloisonnement tient aussi par l'URL directe, pas
-     * seulement dans la liste — c'est precisement ce que le legacy ne faisait pas.
-     */
     @Test
     @WithUserDetails("operator1")
     void anOperatorCannotOpenAFicheOfAnotherAuthorEvenByUrl() throws Exception {
@@ -92,18 +85,15 @@ class CatalogControllerIT {
         mockMvc.perform(get("/fiches/" + other)).andExpect(status().isForbidden());
     }
 
-    /** US-13 CA-3 : un identifiant inexistant donne un 404 applicatif (corrige B1). */
     @Test
     @WithUserDetails("validator1")
     void anUnknownIdGivesACleanNotFound() throws Exception {
         mockMvc.perform(get("/fiches/999999"))
                 .andExpect(status().isNotFound())
-                // US-13 CA-5/ELEV-5 : aucune trace technique dans la page.
                 .andExpect(content().string(not(containsString("Exception"))))
                 .andExpect(content().string(not(containsString("com.datacom"))));
     }
 
-    /** US-12 CA-6 : filtre par etat. */
     @Test
     @WithUserDetails("validator1")
     void theListCanBeFilteredByStatus() throws Exception {
@@ -119,7 +109,6 @@ class CatalogControllerIT {
                 .andExpect(content().string(containsString("REF-805")));
     }
 
-    /** US-14 CA-1/CA-2 : recherche sur le fabricant, insensible aux accents. */
     @Test
     @WithUserDetails("validator1")
     void searchIgnoresCaseAndAccents() throws Exception {
@@ -130,7 +119,6 @@ class CatalogControllerIT {
                 .andExpect(content().string(containsString("REF-806")));
     }
 
-    /** US-14 CA-1 : la recherche porte aussi sur la reference et le nom. */
     @Test
     @WithUserDetails("validator1")
     void searchCoversReferenceAndName() throws Exception {
@@ -142,11 +130,6 @@ class CatalogControllerIT {
                 .andExpect(content().string(containsString("REF-807")));
     }
 
-    /**
-     * US-14 CA-4/SEC-01 : un terme contenant % ne se comporte pas comme un joker. Sans echappement,
-     * cette recherche remonterait toutes les fiches ; elle ne doit remonter que celle qui contient
-     * reellement ce caractere.
-     */
     @Test
     @WithUserDetails("validator1")
     void aPercentSignInTheSearchTermIsTreatedLiterally() throws Exception {
@@ -159,7 +142,6 @@ class CatalogControllerIT {
                 .andExpect(content().string(not(containsString("REF-809"))));
     }
 
-    /** US-14 : la recherche est reservee au VALIDATOR (SEC-02). */
     @Test
     @WithUserDetails("operator1")
     void anOperatorCannotSearch() throws Exception {
@@ -167,7 +149,6 @@ class CatalogControllerIT {
                 .andExpect(status().isForbidden());
     }
 
-    /** US-13 CA-4 : l'historique des decisions figure sur le detail. */
     @Test
     @WithUserDetails("operator1")
     void theDetailShowsTheTransitionHistory() throws Exception {

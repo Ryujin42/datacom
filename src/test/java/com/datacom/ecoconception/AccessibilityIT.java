@@ -21,15 +21,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/**
- * ERG-01 a ERG-07 : ce qui se verifie mecaniquement.
- *
- * <p>Ces tests ne remplacent pas un audit RGAA — le contraste, l'ordre de tabulation ou la
- * pertinence d'un texte alternatif demandent un oeil humain. Ils verrouillent en revanche les
- * regressions les plus faciles a commettre : une page sans titre, une image sans alternative, un
- * champ sans etiquette. Chacune de ces trois erreurs a ete introduite au moins une fois dans le
- * legacy (B9 pour les titres).
- */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("dev")
 @Testcontainers
@@ -58,7 +49,6 @@ class AccessibilityIT {
         return mockMvc.perform(get(url)).andReturn().getResponse().getContentAsString();
     }
 
-    /** ERG-07 et US-18 CA-3 : langue declaree, et un titre propre a chaque page (corrige B9). */
     @Test
     @WithUserDetails("validator1")
     void everyScreenDeclaresItsLanguageAndItsOwnTitle() throws Exception {
@@ -77,7 +67,6 @@ class AccessibilityIT {
         }
     }
 
-    /** ERG-01 : toute image porte une alternative textuelle. */
     @Test
     @WithUserDetails("validator1")
     void everyImageCarriesAnAlternativeText() throws Exception {
@@ -91,7 +80,6 @@ class AccessibilityIT {
         }
     }
 
-    /** ERG-03 : tout champ de saisie porte une etiquette qui lui est associee. */
     @Test
     @WithUserDetails("validator1")
     void everyInputIsAssociatedWithALabel() throws Exception {
@@ -107,7 +95,6 @@ class AccessibilityIT {
         }
     }
 
-    /** ERG-02 : le lien d'evitement precede la navigation sur chaque ecran. */
     @Test
     @WithUserDetails("validator1")
     void everyScreenOffersASkipLinkPointingToItsMainContent() throws Exception {

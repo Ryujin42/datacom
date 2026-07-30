@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-/** US-04. */
 @Controller
 public class PasswordChangeController {
 
@@ -28,6 +27,10 @@ public class PasswordChangeController {
         return "auth/password-change";
     }
 
+    /**
+     * Delegue la validation a {@link PasswordChangeService} ; reaffiche le formulaire dans tous les
+     * cas.
+     */
     @PostMapping("/password/change")
     public String submit(
             @AuthenticationPrincipal UserPrincipal principal,

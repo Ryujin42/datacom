@@ -11,10 +11,6 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
-/**
- * RG-19..RG-24. Comptes crees exclusivement par migration Flyway (D2) : pas de setter public sur
- * login/role en dehors du constructeur, aucune API de creation depuis l'application.
- */
 @Entity
 @Table(name = "users")
 public class User {
@@ -71,7 +67,6 @@ public class User {
         this.enabled = true;
     }
 
-    /** RG-22 : verrouille temporairement apres 5 echecs survenus dans une fenetre de 15 minutes. */
     public void registerFailedAttempt(Instant now) {
         boolean withinWindow =
                 lastFailedAttemptAt != null
@@ -95,7 +90,6 @@ public class User {
         return lockedUntil != null && lockedUntil.isAfter(now);
     }
 
-    /** RG-24 : un compte peut etre desactive sans etre supprime. */
     public boolean isEnabled() {
         return enabled;
     }

@@ -10,12 +10,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-/**
- * Replaces Spring Boot's default whitelabel error page and BasicErrorController. Never leaks a
- * stack trace, an exception class name or an internal path to the browser (SEC-13 / ELEV-5) — only
- * a status, a French message and, for 5xx, the correlation id already logged server-side
- * (US-17/CA-3).
- */
 @Slf4j
 @Controller
 public class GlobalErrorController implements ErrorController {

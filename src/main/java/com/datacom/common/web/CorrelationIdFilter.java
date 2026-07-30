@@ -10,11 +10,6 @@ import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/**
- * Attaches a correlation id to every request: readable in structured logs (QUA-05) and surfaced to
- * the user on 500 error pages so a support request can be traced back to the corresponding log
- * lines.
- */
 @Component
 public class CorrelationIdFilter extends OncePerRequestFilter {
 

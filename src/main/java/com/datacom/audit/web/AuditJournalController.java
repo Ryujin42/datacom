@@ -11,11 +11,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-/**
- * US-16. L'identifiant du controleur vient de la session, jamais de l'URL : c'est ce qui garantit
- * CA-1 (« ses seules decisions ») sans avoir a s'en remettre a un parametre que l'on pourrait
- * changer.
- */
 @Controller
 public class AuditJournalController {
 

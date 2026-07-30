@@ -9,7 +9,6 @@
 <main id="contenu">
     <h1>Rechercher une fiche</h1>
 
-    <!-- Recherche en GET : elle n'a aucun effet de bord, et l'URL reste partageable (SEC-04). -->
     <form method="get" th:action="@{/fiches/recherche}" role="search">
         <div class="form-field">
             <label for="terme">Référence, nom ou fabricant</label>
@@ -50,7 +49,6 @@
         </tbody>
     </table>
 
-    <!-- US-14 CA-5 : resultats pagines. -->
     <nav aria-label="Pagination" th:if="${fiches.totalPages > 1}">
         <p>Page <span th:text="${fiches.number + 1}">1</span> sur <span th:text="${fiches.totalPages}">1</span></p>
         <a th:if="${fiches.hasPrevious()}"

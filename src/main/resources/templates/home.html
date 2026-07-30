@@ -9,7 +9,6 @@
 <main id="contenu">
     <h1>Bienvenue, <span th:text="${firstname}">Prénom</span></h1>
 
-    <!-- US-18 CA-2 : les actions pertinentes pour ce role, et leur decompte. -->
     <section th:if="${role.name() == 'OPERATOR'}">
         <h2>Mes fiches</h2>
         <p>

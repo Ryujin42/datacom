@@ -29,7 +29,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/** US-16 : le journal, et surtout ce qu'il ne montre pas. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("dev")
 @Testcontainers
@@ -72,7 +71,6 @@ class AuditJournalControllerIT {
                         Instant.now()));
     }
 
-    /** CA-1 : le controleur ne voit que ses propres decisions, jamais celles d'un collegue. */
     @Test
     @WithUserDetails("validator1")
     void theJournalOnlyShowsTheDecisionsOfTheConnectedValidator() throws Exception {
@@ -87,7 +85,6 @@ class AuditJournalControllerIT {
                 .andExpect(content().string(not(containsString("Decision d'un autre"))));
     }
 
-    /** CA-2 : filtre par fiche. */
     @Test
     @WithUserDetails("validator1")
     void theJournalCanBeFilteredByFiche() throws Exception {
@@ -102,7 +99,6 @@ class AuditJournalControllerIT {
                 .andExpect(content().string(not(containsString("Motif sur la seconde"))));
     }
 
-    /** CA-2 : filtre par periode ; une periode passee ne contient pas les decisions du jour. */
     @Test
     @WithUserDetails("validator1")
     void theJournalCanBeFilteredByPeriod() throws Exception {
@@ -118,7 +114,6 @@ class AuditJournalControllerIT {
                 .andExpect(content().string(containsString("Motif du jour")));
     }
 
-    /** CA-4 : un OPERATOR n'a pas accès au journal. */
     @Test
     @WithUserDetails("operator1")
     void anOperatorCannotOpenTheJournal() throws Exception {

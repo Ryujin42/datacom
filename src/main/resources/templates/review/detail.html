@@ -11,7 +11,6 @@
 
     <p role="alert" class="form-error" th:if="${errorMessage}" th:text="${errorMessage}">Erreur</p>
 
-    <!-- US-10 CA-1 : l'integralite des donnees, en lecture seule, avant toute decision. -->
     <table>
         <caption>Données soumises</caption>
         <tbody>
@@ -28,13 +27,9 @@
         </tbody>
     </table>
 
-    <!-- US-10 CA-6 / US-11 CA-1 : les decisions ne sont proposees que pour une fiche en controle.
-         Le refus reel reste cote serveur (RG-04), masquer les boutons n'est qu'un confort. -->
     <div th:if="${fiche.status == 'IN_REVIEW'}">
         <section>
             <h2>Valider la fiche</h2>
-            <!-- US-10 CA-2 : la validation est definitive (RG-05), donc elle exige une
-                 confirmation explicite plutot qu'un simple clic. -->
             <form method="post" th:action="@{'/controle/' + ${fiche.id} + '/valider'}">
                 <div class="form-field">
                     <label for="confirmation">

@@ -6,6 +6,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/** Adapte {@link UserRepository} au contrat Spring Security attendu par l'authentification. */
 @Service
 public class DatacomUserDetailsService implements UserDetailsService {
 
@@ -21,7 +22,6 @@ public class DatacomUserDetailsService implements UserDetailsService {
         return userRepository
                 .findByLogin(login)
                 .map(UserPrincipal::new)
-                // Message generique : ne jamais confirmer qu'un identifiant existe (RG-22, SEC-01).
                 .orElseThrow(
                         () ->
                                 new UsernameNotFoundException(

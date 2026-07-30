@@ -69,9 +69,6 @@ public class UserPrincipal implements UserDetails {
         return user.isEnabled();
     }
 
-    // Identite basee sur le login : chaque connexion charge une instance distincte depuis la
-    // base, mais SessionRegistry doit reconnaitre qu'elles representent le meme utilisateur pour
-    // pouvoir retrouver toutes ses sessions (US-04/CA-3).
     @Override
     public boolean equals(Object other) {
         if (this == other) {

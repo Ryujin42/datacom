@@ -1,9 +1,5 @@
 package com.datacom.product.application;
 
-/**
- * Donnees soumises par une etape de saisie. Une etape ne transporte que ses propres champs : c'est
- * ce qui garantit qu'un enregistrement ne reecrit pas les champs des autres etapes (US-06 CA-6).
- */
 public final class ProductStepData {
 
     private ProductStepData() {}
